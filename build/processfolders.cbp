@@ -35,7 +35,7 @@
 				<Option object_output="../obj/Debug64/" />
 				<Option type="1" />
 				<Option compiler="mingw64" />
-				<Option parameters="D:\Download" />
+				<Option parameters="\\SERVER\users\brecht\sources\CPP\foldersnitch" />
 				<Compiler>
 					<Add option="-g" />
 				</Compiler>
@@ -45,7 +45,7 @@
 				<Option object_output="../obj/Release64/" />
 				<Option type="1" />
 				<Option compiler="mingw64" />
-				<Option parameters="D:\PortableApps64" />
+				<Option parameters="D:\Download" />
 				<Compiler>
 					<Add option="-fexpensive-optimizations" />
 					<Add option="-O3" />
