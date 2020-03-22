@@ -18,9 +18,9 @@
 /*! \brief major version number */
 #define FOLDERREPORTS_VERSION_MAJOR 0
 /*! \brief minor version number */
-#define FOLDERREPORTS_VERSION_MINOR 0
+#define FOLDERREPORTS_VERSION_MINOR 1
 /*! \brief micro version number */
-#define FOLDERREPORTS_VERSION_MICRO 1
+#define FOLDERREPORTS_VERSION_MICRO 0
 /*! @} */
 
 /*! \brief packed version number */
