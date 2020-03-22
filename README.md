@@ -16,6 +16,7 @@ Dependancies
 ------------
 This project has the following depencancies:
 - [mhash](http://mhash.sourceforge.net/)
+- [SQLite 3](http://www.sqlite.org/)
 - [libdirtrav](https://github.com/brechtsanders/libdirtrav/)
 - [XLSX I/O](http://brechtsanders.github.io/xlsxio/)
 

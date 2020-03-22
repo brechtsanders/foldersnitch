@@ -1,5 +1,6 @@
 # prerequisites:
 # - mhash
+# - sqlite3
 # - libdirtrav
 # - xlsxio
 # runningrun under Linux may require this:
