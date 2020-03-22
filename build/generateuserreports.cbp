@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6" />
+	<Project>
+		<Option title="generateuserreports" />
+		<Option pch_mode="2" />
+		<Option compiler="gcc" />
+		<Build>
+			<Target title="Debug">
+				<Option output="../bin/Debug/generateuserreports" prefix_auto="1" extension_auto="1" />
+				<Option object_output="../obj/Debug/" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Option parameters="ISIS\lecompl" />
+				<Compiler>
+					<Add option="-g" />
+				</Compiler>
+			</Target>
+			<Target title="Release">
+				<Option output="../bin/Release/generateuserreports" prefix_auto="1" extension_auto="1" />
+				<Option object_output="../obj/Release/" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-fexpensive-optimizations" />
+					<Add option="-O3" />
+				</Compiler>
+				<Linker>
+					<Add option="-s" />
+				</Linker>
+			</Target>
+			<Target title="Debug64">
+				<Option output="../bin/Debug64/generateuserreports" prefix_auto="1" extension_auto="1" />
+				<Option object_output="../obj/Debug64/" />
+				<Option type="1" />
+				<Option compiler="mingw64" />
+				<Compiler>
+					<Add option="-g" />
+				</Compiler>
+			</Target>
+			<Target title="Release64">
+				<Option output="../bin/Release64/generateuserreports" prefix_auto="1" extension_auto="1" />
+				<Option object_output="../obj/Release64/" />
+				<Option type="1" />
+				<Option compiler="mingw64" />
+				<Compiler>
+					<Add option="-fexpensive-optimizations" />
+					<Add option="-O3" />
+					<Add option="-DSTATIC" />
+					<Add option="-DUSE_XLSXIO" />
+				</Compiler>
+				<Linker>
+					<Add option="-s" />
+				</Linker>
+			</Target>
+			<Target title="Debug32">
+				<Option output="../bin/Debug32/generateuserreports" prefix_auto="1" extension_auto="1" />
+				<Option object_output="../obj/Debug32/" />
+				<Option type="1" />
+				<Option compiler="mingw32" />
+				<Compiler>
+					<Add option="-g" />
+				</Compiler>
+			</Target>
+			<Target title="Release32">
+				<Option output="../bin/Release32/generateuserreports" prefix_auto="1" extension_auto="1" />
+				<Option object_output="../obj/Release32/" />
+				<Option type="1" />
+				<Option compiler="mingw32" />
+				<Compiler>
+					<Add option="-fexpensive-optimizations" />
+					<Add option="-O3" />
+					<Add option="-DSTATIC" />
+					<Add option="-DUSE_XLSXIO" />
+				</Compiler>
+				<Linker>
+					<Add option="-s" />
+				</Linker>
+			</Target>
+		</Build>
+		<Compiler>
+			<Add option="-Wall" />
+			<Add option="-fexceptions" />
+		</Compiler>
+		<Linker>
+			<Add option="-static" />
+			<Add option="-Wl,--as-needed" />
+			<Add library="sqlite3" />
+			<Add library="xlsxio_write" />
+			<Add library="minizip" />
+			<Add library="zip" />
+			<Add library="z" />
+			<Add library="dirtrav" />
+		</Linker>
+		<Unit filename="../src/dataoutput.cpp" />
+		<Unit filename="../src/dataoutput.h" />
+		<Unit filename="../src/generateuserreports.cpp" />
+		<Unit filename="../src/sqlitefunctions.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/sqlitefunctions.h" />
+		<Extensions />
+	</Project>
+</CodeBlocks_project_file>

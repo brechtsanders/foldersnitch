@@ -1,0 +1,23 @@
+# depslib dependency file v1.0
+1458817158 source:z:\folder-reports\src\dataoutput.cpp
+	"dataoutput.h"
+	<string.h>
+	<ctype.h>
+	<unistd.h>
+
+1458817015 z:\folder-reports\src\dataoutput.h
+	<stdio.h>
+	<stdint.h>
+	<string>
+	<vector>
+	<xlsxio_write.h>
+
+1354565603 source:z:\folder-reports\src\sqlitefunctions.c
+	<windows.h>
+	"sqlitefunctions.h"
+
+1370601266 z:\folder-reports\src\sqlitefunctions.h
+	<sqlite3.h>
+	<stdint.h>
+	<unistd.h>
+

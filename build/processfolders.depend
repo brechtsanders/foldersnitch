@@ -1,0 +1,28 @@
+# depslib dependency file v1.0
+1354565603 source:z:\folder-reports\src\sqlitefunctions.c
+	<windows.h>
+	"sqlitefunctions.h"
+
+1584883540 z:\folder-reports\src\sqlitefunctions.h
+	<sqlite3.h>
+	<stdint.h>
+	<unistd.h>
+
+1584887956 source:z:\folder-reports\src\processfolders.c
+	<windows.h>
+	<sddl.h>
+	<pwd.h>
+	<sys/stat.h>
+	<stdlib.h>
+	<stdio.h>
+	<string.h>
+	<time.h>
+	<stdint.h>
+	"sqlitefunctions.h"
+	"folderreportsversion.h"
+	<mhash.h>
+	<dirtravw.h>
+	<dirtrav.h>
+
+1584875333 z:\folder-reports\src\folderreportsversion.h
+
