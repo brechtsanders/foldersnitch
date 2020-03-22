@@ -6,11 +6,11 @@ Description
 -----------
 FolderSnitch consists of a series of tools to collect data about folder structures and the files in them, and to generate reports with information about them.
 
-These tools are:
+The tools included are:
 - processfolders: collects data about all files and folders under the specified directory into a database
-- findduplicates: finds duplicate files in database
-- generatereports: generate general reports about the files and folders in database
-- generateuserreports: generate user-specific reports about the files and folders in database
+- findduplicates: checks if any of the files in the database are duplicates
+- generatereports: generate general reports about the files and folders in the database
+- generateuserreports: generate user-specific reports about the files and folders in the database
 
 Dependancies
 ------------
