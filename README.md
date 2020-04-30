@@ -15,10 +15,10 @@ The tools included are:
 How it works
 ------------
 The `processfolders` application crawls trough a directory tree and puts information about all files and folders in a SQLite3 database.
-The following SQL tables are are created and populated during this process:
+The following SQL tables are created and populated during this process:
 - folder:
     | field                | type    | description                                                     |
-    | -------------------- | ------- | --------------------------------------------------------------- |
+    |:-------------------- |:------- |:--------------------------------------------------------------- |
     | id                   | INT     | unique key (primary key)                                        |
     | parent               | INT     | id of parent folder (or NULL if top level)                      |
     | path                 | VARCHAR | full path                                                       |
@@ -31,7 +31,7 @@ The following SQL tables are are created and populated during this process:
     | totalsizerecursive   | INT     | total size in bytes of all in this folder and all deeper levels |
 - file:
     | field      | type    | description              |
-    | ---------- | ------- | ------------------------ |
+    |:---------- |:------- |:------------------------ |
     | id         | INT     | unique key (primary key) |
     | folder     | INT     | id of parent folder      |
     | name       | VARCHAR | filename                 |
