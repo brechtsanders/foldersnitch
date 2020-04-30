@@ -29,7 +29,6 @@ The following SQL tables are are created and populated during this process:
     | filecountrecursive   | INT     | total number of files in this folder and all deeper levels      |
     | foldercountrecursive | INT     | total number of folders in this folder and all deeper levels    |
     | totalsizerecursive   | INT     | total size in bytes of all in this folder and all deeper levels |
-    ")");
 - file:
     | field      | type    | description              |
     | ---------- | ------- | ------------------------ |
@@ -44,6 +43,13 @@ The following SQL tables are are created and populated during this process:
     | crc32      | INT     | CRC32 checksum           |
     | sha1       | VARCHAR | SHA1 checksum            |
     | adler32    | INT     | Adler32 checksum         |
+
+In a next (optional) phase `findduplicates` will check the database for files with identical sizes and hash them.
+
+Then `generatereports` will generate a number of predefined reports.
+If hashes are found (if `findduplicates` was run) this includes reports about duplicate files.
+
+Finally (optional) `generateuserreports` can generate reports per user.
 
 Dependancies
 ------------
