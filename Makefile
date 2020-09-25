@@ -34,7 +34,11 @@ endif
 DEFS = -DUSE_XLSXIO
 INCS = 
 CFLAGS = $(DEFS) $(INCS) -Os
-CPPFLAGS = $(DEFS) $(INCS) -Os
+CXXFLAGS = $(DEFS) $(INCS) -Os
+ifeq ($(STATIC),1)
+CFLAGS += -DSTATIC
+CXXFLAGS += -DSTATIC
+endif
 LIBS =
 LDFLAGS =
 ifeq ($(OS),Darwin)
@@ -69,7 +73,7 @@ else
 PROCESSFOLDERSLIBS += -ldirtrav
 FINDDUPLICATESLIBS += -ldirtrav
 endif
-TOOLSBIN = processfolders$(BINEXT) findduplicates$(BINEXT) findduplicates$(BINEXT) generatereports$(BINEXT) generateuserreports$(BINEXT)
+TOOLSBIN = processfolders$(BINEXT) findduplicates$(BINEXT) generatereports$(BINEXT) generateuserreports$(BINEXT)
 
 COMMON_PACKAGE_FILES = README.md LICENSE.txt Changelog.txt
 SOURCE_PACKAGE_FILES = $(COMMON_PACKAGE_FILES) Makefile src/*.h src/*.c src/*.cpp build/*.workspace build/*.cbp build/*.depend
@@ -81,22 +85,22 @@ default: all
 all: tools
 
 %.o: %.c
-	$(CC) -c -o $@ $< $(CFLAGS) 
+	$(CC) -c -o $@ $< $(CFLAGS)
 
 %.o: %.cpp
-	$(CXX) -c -o $@ $< $(CFLAGS) 
+	$(CXX) -c -o $@ $< $(CXXFLAGS)
 
 processfolders$(BINEXT): src/processfolders.o src/sqlitefunctions.o
-	$(CC) -s -o $@ $^ $(PROCESSFOLDERSLIBS)
+	$(CC) $(STRIPFLAG) -o $@ $^ $(PROCESSFOLDERSLIBS) $(LDFLAGS)
 	
 findduplicates$(BINEXT): src/findduplicates.o src/sqlitefunctions.o
-	$(CXX) -s -o $@ $^ $(FINDDUPLICATESLIBS)
+	$(CXX) $(STRIPFLAG) -o $@ $^ $(FINDDUPLICATESLIBS) $(LDFLAGS)
 
 generatereports$(BINEXT): src/generatereports.o src/sqlitefunctions.o src/dataoutput.o
-	$(CXX) -s -o $@ $^ $(GENERATEREPORTSLIBS)
+	$(CXX) $(STRIPFLAG) -o $@ $^ $(GENERATEREPORTSLIBS) $(LDFLAGS)
 
 generateuserreports$(BINEXT): src/generateuserreports.o src/sqlitefunctions.o src/dataoutput.o
-	$(CXX) -s -o $@ $^ $(GENERATEUSERREPORTSLIBS)
+	$(CXX) $(STRIPFLAG) -o $@ $^ $(GENERATEUSERREPORTSLIBS) $(LDFLAGS)
 
 install: all
 	$(MKDIR) $(PREFIX)/bin
@@ -116,7 +120,7 @@ ifneq ($(OS),Windows_NT)
 	$(MAKE) PREFIX=binarypackage_temp_$(OSALIAS) install
 	tar cfJ foldersnitch-$(shell cat version)-$(OSALIAS).tar.xz --transform="s?^binarypackage_temp_$(OSALIAS)/??" $(COMMON_PACKAGE_FILES) binarypackage_temp_$(OSALIAS)/*
 else
-	$(MAKE) PREFIX=binarypackage_temp_$(OSALIAS) install
+	$(MAKE) PREFIX=binarypackage_temp_$(OSALIAS) install STATIC=1 LDFLAGS="-static -Wl,--as-needed -lminizip -lz"
 	cp -f $(COMMON_PACKAGE_FILES) binarypackage_temp_$(OSALIAS)
 	rm -f foldersnitch-$(shell cat version)-$(OSALIAS).zip
 	cd binarypackage_temp_$(OSALIAS) && zip -r9 ../foldersnitch-$(shell cat version)-$(OSALIAS).zip $(COMMON_PACKAGE_FILES) * && cd ..
