@@ -90,6 +90,7 @@
 			<Add library="rhash" />
 			<Add library="crypto" />
 			<Add library="nettle" />
+			<Add library="dirtravw" />
 		</Linker>
 		<Unit filename="../src/findduplicates.c">
 			<Option compilerVar="CC" />
@@ -100,9 +101,6 @@
 		</Unit>
 		<Unit filename="../src/sqlitefunctions.h" />
 		<Extensions>
-			<code_completion />
-			<envvars />
-			<debugger />
 			<lib_finder disable_auto="1" />
 		</Extensions>
 	</Project>

@@ -24,6 +24,16 @@
 #define USING_NETTLE
 #include <nettle/sha1.h>
 #endif
+#define BUILD_DIRTRAV_STATIC
+#ifdef USE_WIDE_STRINGS
+#include <dirtravw.h>
+#define DIRTRAVFN(fn) dirtravw_##fn
+#else
+#include <dirtrav.h>
+#define DIRTRAVFN(fn) dirtrav_##fn
+#endif
+
+#define APPLICATION_NAME "findduplicates"
 
 #if !defined(HASH_MHASH_CRC32) && !defined(HASH_MHASH_SHA1) && !defined(HASH_MHASH_ADLER32) && !defined(HASH_RHASH_CRC32) && !defined(HASH_RHASH_SHA1) && !defined(HASH_OPENSSL_SHA1) && !defined(HASH_NETTLE_SHA1)
 #define DO_REAL_COMPARE
@@ -204,10 +214,23 @@ int main (int argc, char *argv[])
   const char* dbname = "tempdb.sq3";
   clock_t starttime;
   sqlite3* sqliteconn;
-/*
+
+  //check command line parameters
+  if (argc > 1) {
+    if (strcmp(argv[1], "-v") == 0) {
+      printf("%s version %s\n", APPLICATION_NAME, FOLDERREPORTS_VERSION_STRING);
+      return 0;
+    } else if (strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "-?") == 0) {
+      printf(
+        "Usage: %s\n"
+        "Looks for files with identical sizes in database %s\n"
+        "and calculates their hash to determine if they are identical.\n", APPLICATION_NAME, "tempdb.sq3");
+      return 0;
+    }
+  }
+
   //elevate access
   DIRTRAVFN(elevate_access)();
-*/
 
   //initialize
 #ifdef USING_RHASH

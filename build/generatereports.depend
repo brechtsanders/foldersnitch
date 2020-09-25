@@ -8,3 +8,21 @@
 	<stdint.h>
 	<unistd.h>
 
+1354569203 source:z:\foldersnitch\src\sqlitefunctions.c
+	<windows.h>
+	"sqlitefunctions.h"
+
+1584887140 z:\foldersnitch\src\sqlitefunctions.h
+	<sqlite3.h>
+	<stdint.h>
+	<unistd.h>
+
+1354569203 source:\\server\users\brecht\sources\cpp\foldersnitch\src\sqlitefunctions.c
+	<windows.h>
+	"sqlitefunctions.h"
+
+1584887140 \\server\users\brecht\sources\cpp\foldersnitch\src\sqlitefunctions.h
+	<sqlite3.h>
+	<stdint.h>
+	<unistd.h>
+

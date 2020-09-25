@@ -27,9 +27,10 @@
 #define DIRTRAVSTRLEN wcslen
 #define DIRTRAVSTRCPY wcscpy
 #define DIRTRAVSTRDUP wcsdup
+#define DIRTRAVSTRCMP wcscmp
 #define DIRTRAVPRINTF wprintf
 #define DIRTRAVTEXT_(s) L##s
-#define DIRTRAVTEXT(s) DIRTEXT_(s)
+#define DIRTRAVTEXT(s) DIRTRAVTEXT_(s)
 #define DIRTRAVFN(fn) dirtravw_##fn
 #define SQLITE3FN(fn) sqlite3_##fn##16
 #else
@@ -38,11 +39,14 @@
 #define DIRTRAVSTRLEN strlen
 #define DIRTRAVSTRCPY strcpy
 #define DIRTRAVSTRDUP strdup
+#define DIRTRAVSTRCMP strcmp
 #define DIRTRAVPRINTF printf
 #define DIRTRAVTEXT(s) s
 #define DIRTRAVFN(fn) dirtrav_##fn
 #define SQLITE3FN(fn) sqlite3_##fn
 #endif
+
+#define APPLICATION_NAME "processfolders"
 
 #define MAX_EXTENSION_LENGTH 12
 
@@ -449,6 +453,21 @@ int main (int argc, char* argv[])
   clock_t starttime;
   int i;
   file_folder_callback_data file_callback_data;
+
+  //check command line parameters
+  if (argc > 1) {
+    if (DIRTRAVSTRCMP(argv[1], DIRTRAVTEXT("-v")) == 0) {
+      printf("%s version %s\n", APPLICATION_NAME, FOLDERREPORTS_VERSION_STRING);
+      return 0;
+    } else if (DIRTRAVSTRCMP(argv[1], DIRTRAVTEXT("-h")) == 0 || DIRTRAVSTRCMP(argv[1], DIRTRAVTEXT("-?")) == 0) {
+      printf(
+        "Usage: %s PATH...\n"
+        "Builds a database of all files and folders under the specified paths(s)\n"
+        "and stores this information in %s.\n"
+        "If this file already exists it is first renamed to %s.\n", APPLICATION_NAME, "tempdb.sq3", "tempdbold.sq3");
+      return 0;
+    }
+  }
 
   //elevate access
   DIRTRAVFN(elevate_access)();

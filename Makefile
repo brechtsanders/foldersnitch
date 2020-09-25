@@ -59,15 +59,20 @@ endif
 endif
 
 PROCESSFOLDERSLIBS := -lsqlite3
-ifeq ($(OS),Windows_NT)
-PROCESSFOLDERSLIBS += -ldirtravw
-else
-PROCESSFOLDERSLIBS += -ldirtrav
-endif
 FINDDUPLICATESLIBS := -lsqlite3 -lmhash
 GENERATEREPORTSLIBS := -lsqlite3 -lxlsxio_write
 GENERATEUSERREPORTSLIBS := -lsqlite3 -lxlsxio_write -ldirtrav
+ifeq ($(OS),Windows_NT)
+PROCESSFOLDERSLIBS += -ldirtravw
+FINDDUPLICATESLIBS += -ldirtravw
+else
+PROCESSFOLDERSLIBS += -ldirtrav
+FINDDUPLICATESLIBS += -ldirtrav
+endif
 TOOLSBIN = processfolders$(BINEXT) findduplicates$(BINEXT) findduplicates$(BINEXT) generatereports$(BINEXT) generateuserreports$(BINEXT)
+
+COMMON_PACKAGE_FILES = README.md LICENSE.txt Changelog.txt
+SOURCE_PACKAGE_FILES = $(COMMON_PACKAGE_FILES) Makefile src/*.h src/*.c src/*.cpp build/*.workspace build/*.cbp build/*.depend
 
 tools: $(TOOLSBIN)
 
@@ -82,17 +87,42 @@ all: tools
 	$(CXX) -c -o $@ $< $(CFLAGS) 
 
 processfolders$(BINEXT): src/processfolders.o src/sqlitefunctions.o
-	$(CC) -o $@ $^ $(PROCESSFOLDERSLIBS)
+	$(CC) -s -o $@ $^ $(PROCESSFOLDERSLIBS)
 	
 findduplicates$(BINEXT): src/findduplicates.o src/sqlitefunctions.o
-	$(CXX) -o $@ $^ $(FINDDUPLICATESLIBS)
+	$(CXX) -s -o $@ $^ $(FINDDUPLICATESLIBS)
 
 generatereports$(BINEXT): src/generatereports.o src/sqlitefunctions.o src/dataoutput.o
-	$(CXX) -o $@ $^ $(GENERATEREPORTSLIBS)
+	$(CXX) -s -o $@ $^ $(GENERATEREPORTSLIBS)
 
 generateuserreports$(BINEXT): src/generateuserreports.o src/sqlitefunctions.o src/dataoutput.o
-	$(CXX) -o $@ $^ $(GENERATEUSERREPORTSLIBS)
+	$(CXX) -s -o $@ $^ $(GENERATEUSERREPORTSLIBS)
+
+install: all
+	$(MKDIR) $(PREFIX)/bin
+	$(CP) $(TOOLSBIN) $(PREFIX)/bin/
+
+.PHONY: version
+version:
+	sed -ne "s/^#define\s*FOLDERREPORTS_VERSION_[A-Z]*\s*\([0-9]*\)\s*$$/\1./p" src/folderreportsversion.h | tr -d "\n" | sed -e "s/\.$$//" > version
+
+.PHONY: package
+package: version
+	tar cfJ foldersnitch-$(shell cat version).tar.xz --transform="s?^?foldersnitch-$(shell cat version)/?" $(SOURCE_PACKAGE_FILES)
+
+.PHONY: package
+binarypackage: version
+ifneq ($(OS),Windows_NT)
+	$(MAKE) PREFIX=binarypackage_temp_$(OSALIAS) install
+	tar cfJ foldersnitch-$(shell cat version)-$(OSALIAS).tar.xz --transform="s?^binarypackage_temp_$(OSALIAS)/??" $(COMMON_PACKAGE_FILES) binarypackage_temp_$(OSALIAS)/*
+else
+	$(MAKE) PREFIX=binarypackage_temp_$(OSALIAS) install
+	cp -f $(COMMON_PACKAGE_FILES) binarypackage_temp_$(OSALIAS)
+	rm -f foldersnitch-$(shell cat version)-$(OSALIAS).zip
+	cd binarypackage_temp_$(OSALIAS) && zip -r9 ../foldersnitch-$(shell cat version)-$(OSALIAS).zip $(COMMON_PACKAGE_FILES) * && cd ..
+endif
+	rm -rf binarypackage_temp_$(OSALIAS)
 
 clean:
-	$(RM) src/*.o $(TOOLSBIN)
+	$(RM) src/*.o $(TOOLSBIN) version
 

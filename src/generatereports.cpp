@@ -11,6 +11,8 @@
 #include "folderreportsversion.h"
 #include "dataoutput.h"
 
+#define APPLICATION_NAME "generatereports"
+
 #define RETRY_WAIT_TIME 100
 #ifdef __WIN32__
 #define WAIT_BEFORE_RETRY(ms) Sleep(ms);
@@ -76,6 +78,20 @@ int main (int argc, char *argv[])
   const char* dbname = "tempdb.sq3";
   clock_t starttime;
   sqlite3* sqliteconn;
+
+  //check command line parameters
+  if (argc > 1) {
+    if (strcmp(argv[1], "-v") == 0) {
+      printf("%s version %s\n", APPLICATION_NAME, FOLDERREPORTS_VERSION_STRING);
+      return 0;
+    } else if (strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "-?") == 0) {
+      printf(
+        "Usage: %s\n"
+        "Generates reports based on data in database %s\n", APPLICATION_NAME, "tempdb.sq3");
+      return 0;
+    }
+  }
+
   //initialize
 	if (sqlite3_open(dbname, &sqliteconn) != SQLITE_OK) {
 		return 1;
