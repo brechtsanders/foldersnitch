@@ -1,5 +1,7 @@
 obj/
 bin/
 *.layout
+*.URL
+*.sq3
 *.7z
 *.zip
