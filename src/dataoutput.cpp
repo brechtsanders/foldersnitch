@@ -1,6 +1,7 @@
 #include "dataoutput.h"
 #include <string.h>
 #include <ctype.h>
+#include <inttypes.h>
 #ifdef USE_XLSXIO
 #include <unistd.h>
 #endif
@@ -81,7 +82,7 @@ void DataOutputTSV::AddData (int64_t value)
 {
   if (col++)
     fprintf(dst, "\t");
-  fprintf(dst, "%" PRINTF_INT64_MODIFIER "i", value);
+  fprintf(dst, "%" PRId64, value);
 }
 
 void DataOutputTSV::AddData (double value)
@@ -153,9 +154,9 @@ void DataOutputTXT::AddData (int64_t value)
   if (col++)
     fprintf(dst, "  ");
   if (colwidths[col - 1] > 0)
-    fprintf(dst, "%*" PRINTF_INT64_MODIFIER "i", (int)colwidths[col - 1], value);
+    fprintf(dst, "%*" PRId64, (int)colwidths[col - 1], value);
   else
-    fprintf(dst, "%" PRINTF_INT64_MODIFIER "i", value);
+    fprintf(dst, "%" PRId64, value);
 }
 
 void DataOutputTXT::AddData (double value)
@@ -332,7 +333,7 @@ void DataOutputHTML::AddData (int value)
 void DataOutputHTML::AddData (int64_t value)
 {
   col++;
-  fprintf(dst, "<td align=\"right\">%" PRINTF_INT64_MODIFIER "i</td>", value);
+  fprintf(dst, "<td align=\"right\">%" PRId64 "</td>", value);
 }
 
 void DataOutputHTML::AddData (double value)
@@ -572,7 +573,7 @@ void DataOutputXML::AddData (int value)
 void DataOutputXML::AddData (int64_t value)
 {
   col++;
-  fprintf(dst, "<Cell><Data ss:Type=\"Number\">%" PRINTF_INT64_MODIFIER "i</Data></Cell>", value);
+  fprintf(dst, "<Cell><Data ss:Type=\"Number\">%" PRId64 "</Data></Cell>", value);
 }
 
 void DataOutputXML::AddData (double value)

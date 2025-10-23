@@ -17,6 +17,7 @@
 #include <time.h>
 //#include <unistd.h>
 #include <stdint.h>
+#include <inttypes.h>
 #include "sqlitefunctions.h"
 #include "folderreportsversion.h"
 #include <mhash.h>
@@ -569,7 +570,7 @@ int main (int argc, char* argv[])
   sqlite3_close(file_callback_data.sqliteconn);
 
   //show information
-  printf("%" PRINTF_INT64_MODIFIER "u files found in %" PRINTF_INT64_MODIFIER "u folders, total size: %" PRINTF_INT64_MODIFIER "u M\n", (uint64_t)file_callback_data.filecount, (uint64_t)file_callback_data.foldercount, (uint64_t)file_callback_data.totalsize / 1024 / 1024);
+  printf("%" PRIu64 " files found in %" PRIu64 " folders, total size: %" PRIu64 " M\n", (uint64_t)file_callback_data.filecount, (uint64_t)file_callback_data.foldercount, (uint64_t)file_callback_data.totalsize / 1024 / 1024);
 
   return 0;
 }

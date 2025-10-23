@@ -1,0 +1,45 @@
+# depslib dependency file v1.0
+1354565603 source:z:\folder-reports\src\sqlitefunctions.c
+	<windows.h>
+	"sqlitefunctions.h"
+
+1370601266 z:\folder-reports\src\sqlitefunctions.h
+	<sqlite3.h>
+	<stdint.h>
+	<unistd.h>
+
+1584875393 source:z:\folder-reports\src\findduplicates.c
+	<windows.h>
+	<stdlib.h>
+	<stdio.h>
+	<time.h>
+	"sqlitefunctions.h"
+	"folderreportsversion.h"
+	"hashconfig.h"
+	<mhash.h>
+	<rhash.h>
+	<openssl/sha.h>
+	<nettle/sha1.h>
+
+1396336966 z:\folder-reports\src\hashconfig.h
+
+1584875333 z:\folder-reports\src\folderreportsversion.h
+
+1354569203 source:z:\foldersnitch\src\sqlitefunctions.c
+	<windows.h>
+	"sqlitefunctions.h"
+
+1584887140 z:\foldersnitch\src\sqlitefunctions.h
+	<sqlite3.h>
+	<stdint.h>
+	<unistd.h>
+
+1354569203 source:\\server\users\brecht\sources\cpp\foldersnitch\src\sqlitefunctions.c
+	<windows.h>
+	"sqlitefunctions.h"
+
+1584887140 \\server\users\brecht\sources\cpp\foldersnitch\src\sqlitefunctions.h
+	<sqlite3.h>
+	<stdint.h>
+	<unistd.h>
+

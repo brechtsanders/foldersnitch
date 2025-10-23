@@ -1,0 +1,5 @@
+obj/
+bin/
+*.layout
+*.7z
+*.zip
