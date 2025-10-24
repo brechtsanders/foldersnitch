@@ -110,13 +110,13 @@ int main (int argc, char *argv[])
   execute_sql_cmd(sqliteconn,
     "CREATE INDEX IF NOT EXISTS idx_folder_parent ON folder (parent)");
   execute_sql_cmd(sqliteconn,
-    "CREATE INDEX IF NOT EXISTS idx_folder_owner ON folder (owner)");
+    "CREATE INDEX IF NOT EXISTS idx_folder_ownerid ON folder (ownerid)");
   execute_sql_cmd(sqliteconn,
     "CREATE INDEX IF NOT EXISTS idx_file_folder ON file (folder)");
   execute_sql_cmd(sqliteconn,
     "CREATE INDEX IF NOT EXISTS idx_file_size ON file (size DESC)");
   execute_sql_cmd(sqliteconn,
-    "CREATE INDEX IF NOT EXISTS idx_file_owner ON file (owner)");
+    "CREATE INDEX IF NOT EXISTS idx_file_ownerid ON file (ownerid)");
   execute_sql_cmd(sqliteconn, "COMMIT");
   printf("\rnew indices created: %.3f s\n", (float)(clock() - starttime) / CLOCKS_PER_SEC);
 
@@ -130,7 +130,7 @@ int main (int argc, char *argv[])
     "  file.name AS filename,\n"
     "  file.extension,\n"
     "  file.size,\n"
-    "  file.owner,\n"
+    "  file.ownerid,\n"
     "  DATETIME(file.created, 'unixepoch', 'localtime') AS createddate,\n"
     "  DATETIME(file.lastaccess, 'unixepoch', 'localtime') AS lastfiledate\n"
     "FROM file\n"
@@ -142,7 +142,7 @@ int main (int argc, char *argv[])
     "  folder.path,\n"
     "  folder.filecount,\n"
     "  folder.totalsize,\n"
-    "  folder.owner,\n"
+    "  folder.ownerid,\n"
     "  MIN(file.size) AS smallestsize,\n"
     "  MAX(file.size) AS largestsize,\n"
     "  DATETIME(MIN(file.created), 'unixepoch', 'localtime') AS firstcreateddate,\n"
@@ -259,9 +259,9 @@ int main (int argc, char *argv[])
     "FROM file\n"
     "GROUP BY sizegroup\n"
     "ORDER BY sizegroup");
-  generate_sql_report(sqliteconn, "files_by_owner",
+  generate_sql_report(sqliteconn, "files_by_ownerid",
     "SELECT\n"
-    "  owner,\n"
+    "  ownerid,\n"
     "  COUNT(*) AS files,\n"
     "  SUM(size) AS totalsize,\n"
     "  COUNT(DISTINCT folder) AS differentfolders,\n"
@@ -270,16 +270,16 @@ int main (int argc, char *argv[])
     "  DATETIME(MIN(lastaccess), 'unixepoch', 'localtime') AS firstaccessdate,\n"
     "  DATETIME(MAX(lastaccess), 'unixepoch', 'localtime') AS lastaccessdate\n"
     "FROM file\n"
-    "GROUP BY owner\n"
+    "GROUP BY ownerid\n"
     "ORDER BY totalsize DESC");
-  generate_sql_report(sqliteconn, "folders_by_owner",
+  generate_sql_report(sqliteconn, "folders_by_ownerid",
     "SELECT\n"
-    "  owner,\n"
+    "  ownerid,\n"
     "  COUNT(*) AS folders,\n"
     "  SUM (totalsize) AS totalfilesize,\n"
     "  SUM (totalsizerecursive) AS totalfilesizerecursive\n"
     "FROM folder\n"
-    "GROUP BY owner\n"
+    "GROUP BY ownerid\n"
     "ORDER BY totalfilesize DESC, folders DESC");
   //show elapsed time
   printf("\relapsed time generating reports: %.3f s\n", (float)(clock() - starttime) / CLOCKS_PER_SEC);
@@ -306,7 +306,7 @@ int main (int argc, char *argv[])
       "  file.name AS filename,\n"
       "  file.extension,\n"
       "  file.size,\n"
-      "  file.owner,\n"
+      "  file.ownerid,\n"
       "  DATETIME(file.lastaccess, 'unixepoch', 'localtime') AS lastfiledate\n"
       "FROM file\n"
       "JOIN duplicatefiles ON file.id = duplicatefiles.file1 OR file.id = duplicatefiles.file2\n"
@@ -334,11 +334,11 @@ int main (int argc, char *argv[])
       "  folder1.path AS path1,\n"
       "	 folder1.filecount AS path1files,\n"
       "	 folder1.totalsize AS path1totalsize,\n"
-      "  folder1.owner AS folder1owner,\n"
+      "  folder1.ownerid AS folder1ownerid,\n"
       "  folder2.path AS path2,\n"
       "	 folder2.filecount AS path2files,\n"
       "	 folder2.totalsize AS path2totalsize,\n"
-      "  folder2.owner AS folder2owner\n"
+      "  folder2.ownerid AS folder2ownerid\n"
       "FROM duplicatefiles\n"
       "JOIN file AS file1 ON duplicatefiles.file1 = file1.id OR duplicatefiles.file2 = file1.id\n"
       "JOIN file AS file2 ON duplicatefiles.file1 = file2.id OR duplicatefiles.file2 = file2.id\n"
@@ -454,15 +454,15 @@ sqlite3 -header tempdb.sq3 "SELECT folder.path, file.name, file.extension, file.
 
 sqlite3 -header tempdb.sq3 "SELECT duplicatefiles.file1, folder.path, file.name, file.extension, file.size, DATETIME(file.lastaccess, 'unixepoch', 'localtime') AS lastfiledate FROM file JOIN duplicatefiles ON file.id = duplicatefiles.file1 OR file.id = duplicatefiles.file2 LEFT JOIN folder ON file.folder = folder.id ORDER BY duplicatefiles.file1, folder.path, file.name"
 
-sqlite3 -header tempdb.sq3 "SELECT owner, COUNT(file.id) AS totalfiles, SUM(file.size) AS totalsize FROM file GROUP BY owner"
+sqlite3 -header tempdb.sq3 "SELECT ownerid, COUNT(file.id) AS totalfiles, SUM(file.size) AS totalsize FROM file GROUP BY ownerid"
 
 -- list specific user's files
-sqlite3 -header tempdb.sq3 "SELECT folder.path,file.name AS filename,file.size,DATETIME(file.lastaccess, 'unixepoch', 'localtime') AS lastfiledate FROM file LEFT JOIN folder ON file.folder = folder.id WHERE file.owner='ISIS\lahayel' ORDER BY file.size DESC, folder.path, file.name"
+sqlite3 -header tempdb.sq3 "SELECT folder.path,file.name AS filename,file.size,DATETIME(file.lastaccess, 'unixepoch', 'localtime') AS lastfiledate FROM file LEFT JOIN folder ON file.folder = folder.id WHERE file.ownerid='ISIS\lahayel' ORDER BY file.size DESC, folder.path, file.name"
 
 -- list recent files
-sqlite3 -header tempdb.sq3 "SELECT * FROM file WHERE DATE(lastaccess, 'unixepoch', 'localtime') >= DATE('now', '-1 day') ORDER BY owner, size DESC"
--- list owners of files created today and total size of new files
-sqlite3 -header tempdb.sq3 "SELECT owner, SUM(size) FROM file WHERE DATE(MAX(created, lastaccess), 'unixepoch', 'localtime') >= DATE('now', '-1 day') GROUP BY owner ORDER BY SUM(size) DESC"
+sqlite3 -header tempdb.sq3 "SELECT * FROM file WHERE DATE(lastaccess, 'unixepoch', 'localtime') >= DATE('now', '-1 day') ORDER BY ownerid, size DESC"
+-- list ownerids of files created today and total size of new files
+sqlite3 -header tempdb.sq3 "SELECT ownerid, SUM(size) FROM file WHERE DATE(MAX(created, lastaccess), 'unixepoch', 'localtime') >= DATE('now', '-1 day') GROUP BY ownerid ORDER BY SUM(size) DESC"
 */
 //See also: http://en.wikipedia.org/wiki/NTFS_symbolic_link
 

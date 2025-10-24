@@ -21,8 +21,8 @@ The following SQL tables are created and populated during this process:
     |:-------------------- |:------- |:--------------------------------------------------------------- |
     | id                   | INT     | unique key (primary key)                                        |
     | parent               | INT     | id of parent folder (or NULL if top level)                      |
-    | path                 | VARCHAR | full path                                                       |
-    | owner                | VARCHAR | owner's username                                                |
+    | path                 | TEXT    | full path                                                       |
+    | owner                | TEXT    | owner's username                                                |
     | filecount            | INT     | total number of files in this folder alone                      |
     | foldercount          | INT     | total number of folders in this folder alone                    |
     | totalsize            | INT     | total size in bytes of all files in this folder alone           |
@@ -34,12 +34,12 @@ The following SQL tables are created and populated during this process:
     |:---------- |:------- |:------------------------ |
     | id         | INT     | unique key (primary key) |
     | folder     | INT     | id of parent folder      |
-    | name       | VARCHAR | filename                 |
-    | extension  | VARCHAR | extension                |
+    | name       | TEXT    | filename                 |
+    | extension  | TEXT    | extension                |
     | size       | INT     | size in bytes            |
     | created    | INT     | creation date/time       |
     | lastaccess | INT     | last access date/time    |
-    | owner      | VARCHAR | owner's username         |
+    | owner      | TEXT    | owner's username         |
     | crc32      | INT     | CRC32 checksum           |
     | sha1       | VARCHAR | SHA1 checksum            |
     | adler32    | INT     | Adler32 checksum         |

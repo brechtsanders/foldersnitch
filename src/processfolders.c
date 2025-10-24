@@ -49,8 +49,6 @@
 
 #define APPLICATION_NAME "processfolders"
 
-#define MAX_EXTENSION_LENGTH 12
-
 #define LOOKUP_SID
 
 #define USE_TEMP_DB 1
@@ -63,9 +61,6 @@
 #if !defined(USE_TEMP_DB) && !defined(USE_DB_TRANSACTIONS)
 #define USE_DB_TRANSACTIONS 1
 #endif
-
-#define DEF_INT2STR_HELPER(n) #n
-#define DEF_INT2STR(n) DEF_INT2STR_HELPER(n)
 
 #ifdef __MINGW32__
 #define PRINTF_INT64_MODIFIER "I64"
@@ -144,11 +139,11 @@ int file_folder_callback_data_initialize (file_folder_callback_data* file_callba
   file_callback_data->lastcommit = clock();
 #endif
   file_callback_data->sqlstmt_insert_file = NULL;
-  if ((status = sqlite3_prepare_v2(file_callback_data->sqliteconn, "INSERT INTO file (id, folder, name, extension, size, created, lastaccess, owner, crc32, sha1, adler32) VALUES (?, ?, ?, LOWER(?), ?, ?, ?, ?, ?, ?, ?)", -1, &(file_callback_data->sqlstmt_insert_file), NULL)) != SQLITE_OK) {
+  if ((status = sqlite3_prepare_v2(file_callback_data->sqliteconn, "INSERT INTO file (id, folder, name, extension, size, created, lastaccess, ownerid, crc32, sha1, adler32) VALUES (?, ?, ?, LOWER(?), ?, ?, ?, ?, ?, ?, ?)", -1, &(file_callback_data->sqlstmt_insert_file), NULL)) != SQLITE_OK) {
     return 1;
   }
   file_callback_data->sqlstmt_insert_folder = NULL;
-  if ((status = sqlite3_prepare_v2(file_callback_data->sqliteconn, "INSERT INTO folder (id, parent, path, owner, filecount, foldercount, totalsize, filecountrecursive, foldercountrecursive, totalsizerecursive) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", -1, &(file_callback_data->sqlstmt_insert_folder), NULL)) != SQLITE_OK) {
+  if ((status = sqlite3_prepare_v2(file_callback_data->sqliteconn, "INSERT INTO folder (id, parent, path, ownerid, filecount, foldercount, totalsize, filecountrecursive, foldercountrecursive, totalsizerecursive) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", -1, &(file_callback_data->sqlstmt_insert_folder), NULL)) != SQLITE_OK) {
     return 2;
   }
   file_callback_data->sqlstmt_get_previous_folder_id = NULL;
@@ -266,7 +261,7 @@ int folder_callback_before (DIRTRAVFN(entry) info)
 int folder_callback_after (DIRTRAVFN(entry) info)
 {
   int status;
-  DIRTRAVCHAR* owner;
+  DIRTRAVCHAR* ownerid;
 	file_folder_callback_data* file_callback_data = (file_folder_callback_data*)info->callbackdata;
 	const DIRTRAVCHAR* fullpath = DIRTRAVFN(prop_get_path)(info);
   folder_data** folderdata = (folder_data**)&(info->folderlocaldata);
@@ -289,8 +284,8 @@ int folder_callback_after (DIRTRAVFN(entry) info)
     else
       sqlite3_bind_null(sqlresult, 2);
     SQLITE3FN(bind_text)(sqlresult, 3, fullpath, -1, NULL);
-    if ((owner = DIRTRAVFN(prop_get_owner)(info)) != NULL)
-      SQLITE3FN(bind_text)(sqlresult, 4, owner, -1, NULL);
+    if ((ownerid = DIRTRAVFN(prop_get_ownerid)(info)) != NULL)
+      SQLITE3FN(bind_text)(sqlresult, 4, ownerid, -1, NULL);
     else
       sqlite3_bind_null(sqlresult, 4);
     sqlite3_bind_int64(sqlresult, 5, ((folder_data*)*folderdata)->filecount);
@@ -304,7 +299,7 @@ int folder_callback_after (DIRTRAVFN(entry) info)
 /////if (status != SQLITE_DONE) printf("%lu (folder: %s)\n", (unsigned long)status, fullpath);/////
     sqlite3_clear_bindings(sqlresult);
     sqlite3_reset(sqlresult);
-    free(owner);
+    free(ownerid);
     //notify of progress (flush if needed)
     file_folder_callback_data_progress(file_callback_data);
   }
@@ -316,7 +311,7 @@ int folder_callback_after (DIRTRAVFN(entry) info)
 int file_callback (DIRTRAVFN(entry) info)
 {
   int status;
-  DIRTRAVCHAR* owner;
+  DIRTRAVCHAR* ownerid;
   int64_t filesize;
   time_t createdtimestamp = 0;
 /*
@@ -400,8 +395,8 @@ int file_callback (DIRTRAVFN(entry) info)
       sqlite3_bind_int64(sqlresult, 7, latesttimestamp);
     else
       sqlite3_bind_null(sqlresult, 7);
-    if ((owner = DIRTRAVFN(prop_get_owner)(info)) != NULL)
-      SQLITE3FN(bind_text)(sqlresult, 8, owner, -1, NULL);
+    if ((ownerid = DIRTRAVFN(prop_get_ownerid)(info)) != NULL)
+      SQLITE3FN(bind_text)(sqlresult, 8, ownerid, -1, NULL);
     else
       sqlite3_bind_null(sqlresult, 8);
     if (have_previous_crc32)
@@ -421,11 +416,175 @@ int file_callback (DIRTRAVFN(entry) info)
 /////if (status != SQLITE_DONE) printf("SQL error %lu (file: %s)\n", (unsigned long)status, fullpath);////
     sqlite3_clear_bindings(sqlresult);
     sqlite3_reset(sqlresult);
-    free(owner);
+    free(ownerid);
     //notify of progress (flush if needed)
     file_folder_callback_data_progress(file_callback_data);
   }
   return 0;
+}
+
+////////////////////////////////////////////////////////////////////////
+
+#ifdef USE_WIDE_STRINGS
+#  define DIRCHAR wchar_t
+#  define DIRSTRLEN wcslen
+#  define DIRSTRCPY wcscpy
+#  define DIRSTRDUP wcsdup
+#  define DIRWINFN(s) s##W
+#else
+#  define DIRCHAR char
+#  define DIRSTRLEN strlen
+#  define DIRSTRCPY strcpy
+#  define DIRSTRDUP strdup
+#  define DIRWINFN(s) s##A
+#endif
+
+static inline DIRCHAR* sid_to_string (PSID sid)
+{
+  DIRCHAR* result;
+  SID_NAME_USE accounttype;
+  DIRCHAR* name;
+  DIRCHAR* domain;
+  DWORD len = 0;
+  DWORD domainlen = 0;
+  //if (DIRWINFN(LookupAccountSid)(NULL, sid, NULL, &len, NULL, &domainlen, &accounttype) == 0) {
+  if (DIRWINFN(LookupAccountSid)(DIRTRAVTEXT("SERVER"), sid, NULL, &len, NULL, &domainlen, &accounttype) == 0) {
+
+    DWORD errorcode = GetLastError();
+    DIRCHAR* errormessage;
+    if (DIRWINFN(FormatMessage)(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, errorcode, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (DIRCHAR*)&errormessage, 0, NULL) != 0) {
+      DIRTRAVPRINTF(DIRTRAVTEXT("Error: %ls\n"), errormessage);
+      LocalFree(errormessage);
+    }
+  }
+
+
+  if (len > 0 && domainlen > 0) {
+    if (!(name = (DIRCHAR*)malloc(len * sizeof(DIRCHAR)))) {
+      return NULL;
+    }
+    if (!(domain = (DIRCHAR*)malloc(domainlen * sizeof(DIRCHAR)))) {
+      free(name);
+      return NULL;
+    }
+    //if (DIRWINFN(LookupAccountSid)(NULL, sid, name, &len, domain, &domainlen, &accounttype)) {
+    if (DIRWINFN(LookupAccountSid)(DIRTRAVTEXT("SERVER"), sid, name, &len, domain, &domainlen, &accounttype)) {
+      if ((result = (DIRCHAR*)malloc((domainlen + len + 2) * sizeof(DIRCHAR))) == NULL) {
+        free(name);
+        free(domain);
+        return NULL;
+      } else {
+        memcpy(result, domain, domainlen * sizeof(DIRCHAR));
+        result[domainlen] = '\\';
+        DIRSTRCPY(result + domainlen + 1, name);
+      }
+    }
+    free(name);
+    free(domain);
+  } else {
+    result = NULL;
+/*
+    DWORD errorcode = GetLastError();
+    DIRCHAR* errormessage;
+    if (DIRWINFN(FormatMessage)(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, errorcode, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (DIRCHAR*)&errormessage, 0, NULL) != 0) {
+      DIRPRINTF(DIRTEXT("Error: %s\n"), errormessage);
+      LocalFree(errormessage);
+    }
+*/
+  }
+  if (!result) {
+    DIRCHAR* sidstring;
+    if (DIRWINFN(ConvertSidToStringSid)(sid, &sidstring)) {
+      result = DIRSTRDUP(sidstring);
+      LocalFree(sidstring);
+    }
+  }
+  return result;
+}
+
+DIRCHAR* userid_to_name (const DIRCHAR* userid)
+{
+#ifdef _WIN32
+  DIRCHAR* result = NULL;
+  PSID sid;
+  if (DIRWINFN(ConvertStringSidToSid)(userid, &sid) == 0)
+    return NULL;
+  result = sid_to_string(sid);
+  LocalFree(sid);
+  return result;
+#else
+  struct passwd* pw;
+  char* p = userid;
+  long long id = strtoll(userid, &p, 10);
+  if (p == userid || id < 0 || id > (1 << sizeof(pid_t)) - 1)
+    return NULL;
+  return uid_to_string(id);
+#endif
+}
+
+#include <winnetwk.h>
+#include <npapi.h>
+
+////////////////////////////////////////////////////////////////////////
+
+int file_folder_lookup_users (file_folder_callback_data* file_callback_data)
+{
+  int status;
+	sqlite3_stmt* sqlresult;
+  if ((sqlresult = execute_sql_query(file_callback_data->sqliteconn, "SELECT DISTINCT ownerid FROM (SELECT DISTINCT ownerid FROM folder UNION SELECT DISTINCT ownerid FROM file)", &status)) != NULL) {
+    if (status == SQLITE_ROW || status == SQLITE_DONE) {
+      DIRTRAVCHAR* userid;
+      DIRTRAVCHAR* username;
+      while (status == SQLITE_ROW) {
+        userid = (const DIRTRAVCHAR*)SQLITE3FN(column_text)(sqlresult, 0);
+DIRTRAVPRINTF(DIRTRAVTEXT("SID: "));/////
+DIRTRAVPRINTF(userid);/////
+DIRTRAVPRINTF(DIRTRAVTEXT("\n"));/////
+//username = DIRTRAVFN(userid_to_name)(userid);
+username = userid_to_name(userid);
+DIRTRAVPRINTF(DIRTRAVTEXT("Name: "));/////
+DIRTRAVPRINTF(username);/////
+DIRTRAVPRINTF(DIRTRAVTEXT("\n"));/////
+        dirtravw_free(username);
+        while ((status = sqlite3_step(sqlresult)) == SQLITE_BUSY)
+          WAIT_BEFORE_RETRY(RETRY_WAIT_TIME)
+      }
+    }
+    sqlite3_finalize(sqlresult);
+	}
+
+/*
+	DIRWINFN(REMOTE_NAME_INFO) remotepathinfo;
+	DWORD remotepathinfolen = sizeof(remotepathinfo);
+	if (DIRWINFN(WNetGetUniversalName)(DIRTRAVTEXT("\\\\SERVER\\Users\\Brecht"), REMOTE_NAME_INFO_LEVEL, &remotepathinfo, &remotepathinfolen) == NO_ERROR) {
+DIRTRAVPRINTF(remotepathinfo.lpConnectionName);
+	} else {
+    DWORD errorcode = GetLastError();
+    DIRCHAR* errormessage;
+    if (DIRWINFN(FormatMessage)(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, errorcode, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (DIRCHAR*)&errormessage, 0, NULL) != 0) {
+      DIRTRAVPRINTF(DIRTRAVTEXT("Error: %Ls\n"), errormessage);
+      LocalFree(errormessage);
+    }
+	}
+DIRTRAVPRINTF(DIRTRAVTEXT("\n"));/////
+*/
+
+	REMOTE_NAME_INFOW remotepathinfo;
+	DWORD remotepathinfolen = sizeof(remotepathinfo);
+	DWORD errcode;
+	if ((errcode = NPGetUniversalName(DIRTRAVTEXT("\\\\SERVER\\Users\\Brecht"), REMOTE_NAME_INFO_LEVEL, &remotepathinfo, &remotepathinfolen)) == WN_SUCCESS) {
+DIRTRAVPRINTF(remotepathinfo.lpConnectionName);
+	} else {
+    DWORD errorcode = GetLastError();
+    DIRCHAR* errormessage;
+    if (DIRWINFN(FormatMessage)(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, errorcode, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (DIRCHAR*)&errormessage, 0, NULL) != 0) {
+      DIRTRAVPRINTF(DIRTRAVTEXT("Error: %Ls\n"), errormessage);
+      LocalFree(errormessage);
+    }
+	}
+DIRTRAVPRINTF(DIRTRAVTEXT("\n"));/////
+
+	return 0;
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -498,33 +657,39 @@ int main (int argc, char* argv[])
   execute_sql_cmd(file_callback_data.sqliteconn, "DROP TABLE IF EXISTS folder");
   //execute_sql_cmd(file_callback_data.sqliteconn, "DROP INDEX IF EXISTS idx_file_size");
   execute_sql_cmd(file_callback_data.sqliteconn, "DROP TABLE IF EXISTS file");
+  execute_sql_cmd(file_callback_data.sqliteconn, "DROP TABLE IF EXISTS user");
   execute_sql_cmd(file_callback_data.sqliteconn, "DROP TABLE IF EXISTS duplicatefiles");
   execute_sql_cmd(file_callback_data.sqliteconn,
-    "CREATE TABLE folder (\n"
-    "  id INT NOT NULL PRIMARY KEY,\n"
-    "  parent INT,\n"
-    "  path VARCHAR(1024) NOT NULL,\n"
-    "  owner VARCHAR(255),\n"
-    "  filecount INT DEFAULT NULL,\n"
-    "  foldercount INT DEFAULT NULL,\n"
-    "  totalsize INT DEFAULT NULL,\n"
-    "  filecountrecursive INT DEFAULT NULL,\n"
-    "  foldercountrecursive INT DEFAULT NULL,\n"
-    "  totalsizerecursive INT DEFAULT NULL\n"
+    "CREATE TABLE folder ("
+    " id INT NOT NULL PRIMARY KEY,"
+    " parent INT,"
+    " path TEXT NOT NULL,"
+    " ownerid TEXT,"
+    " filecount INT DEFAULT NULL,"
+    " foldercount INT DEFAULT NULL,"
+    " totalsize INT DEFAULT NULL,"
+    " filecountrecursive INT DEFAULT NULL,"
+    " foldercountrecursive INT DEFAULT NULL,"
+    " totalsizerecursive INT DEFAULT NULL"
     ")");
   execute_sql_cmd(file_callback_data.sqliteconn,
-    "CREATE TABLE file (\n"
-    "  id INT NOT NULL PRIMARY KEY,\n"
-    "  folder INT,\n"
-    "  name VARCHAR(255) NOT NULL,\n"
-    "  extension VARCHAR(" DEF_INT2STR(MAX_EXTENSION_LENGTH) "),\n"
-    "  size INT NOT NULL,\n"
-    "  created INT,\n"
-    "  lastaccess INT,\n"
-    "  owner VARCHAR(255),\n"
-    "  crc32 INT DEFAULT NULL,\n"
-    "  sha1 VARCHAR(40) DEFAULT NULL,\n"
-    "  adler32 INT DEFAULT NULL\n"
+    "CREATE TABLE file ("
+    " id INT NOT NULL PRIMARY KEY,"
+    " folder INT,"
+    " name TEXT NOT NULL,"
+    " extension TEXT,"
+    " size INT NOT NULL,"
+    " created INT,"
+    " lastaccess INT,"
+    " ownerid TEXT,"
+    " crc32 INT DEFAULT NULL,"
+    " sha1 VARCHAR(40) DEFAULT NULL,"
+    " adler32 INT DEFAULT NULL"
+    ")");
+  execute_sql_cmd(file_callback_data.sqliteconn,
+    "CREATE TABLE user ("
+    " userid TEXT NOT NULL PRIMARY KEY,"
+    " name TEXT NOT NULL"
     ")");
 #ifdef USE_DB_TRANSACTIONS
   execute_sql_cmd(file_callback_data.sqliteconn, "COMMIT");
@@ -545,16 +710,24 @@ int main (int argc, char* argv[])
       execute_sql_cmd(file_callback_data.sqliteconn, "COMMIT");
 #endif
     }
-    file_folder_callback_data_cleanup(&file_callback_data);
     //show elapsed time
     printf("\relapsed time processing folders: %.3f s\n", (float)(clock() - starttime) / CLOCKS_PER_SEC);
+
+    //look up user IDs
+    file_folder_lookup_users(&file_callback_data);
+
+    //clean up
+    printf("resolving user IDs...  ");
+    starttime = clock();
+    file_folder_callback_data_cleanup(&file_callback_data);
+    printf("\relapsed time resolving user IDs: %.3f s\n", (float)(clock() - starttime) / CLOCKS_PER_SEC);
 
 #ifdef USE_TEMP_DB
     //copy data to disk
     sqlite3* sqliteconn;
     sqlite3_backup* dbcopy;
-    starttime = clock();
     printf("writing data to disk...  ");
+    starttime = clock();
     if (sqlite3_open(dbname, &sqliteconn) == SQLITE_OK) {
       if ((dbcopy = sqlite3_backup_init(sqliteconn, "main", file_callback_data.sqliteconn, "main")) != NULL) {
         sqlite3_backup_step(dbcopy, -1);
@@ -575,4 +748,4 @@ int main (int argc, char* argv[])
   return 0;
 }
 
-//sqlite3 -csv -header tempdb.sq3 "SELECT folder.path, file.name AS filename, file.size, file.owner, file.crc32, file.sha1, file.adler32 FROM file LEFT JOIN folder ON file.folder = folder.id"
+//sqlite3 -csv -header tempdb.sq3 "SELECT folder.path, file.name AS filename, file.size, file.ownerid, file.crc32, file.sha1, file.adler32 FROM file LEFT JOIN folder ON file.folder = folder.id"
