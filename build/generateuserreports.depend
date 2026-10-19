@@ -21,24 +21,25 @@
 	<stdint.h>
 	<unistd.h>
 
-1458820758 source:z:\foldersnitch\src\dataoutput.cpp
+1761239914 source:z:\foldersnitch\src\dataoutput.cpp
 	"dataoutput.h"
 	<string.h>
 	<ctype.h>
+	<inttypes.h>
 	<unistd.h>
 
-1458820615 z:\foldersnitch\src\dataoutput.h
+1458817015 z:\foldersnitch\src\dataoutput.h
 	<stdio.h>
 	<stdint.h>
 	<string>
 	<vector>
 	<xlsxio_write.h>
 
-1354569203 source:z:\foldersnitch\src\sqlitefunctions.c
+1354565603 source:z:\foldersnitch\src\sqlitefunctions.c
 	<windows.h>
 	"sqlitefunctions.h"
 
-1584887140 z:\foldersnitch\src\sqlitefunctions.h
+1584883540 z:\foldersnitch\src\sqlitefunctions.h
 	<sqlite3.h>
 	<stdint.h>
 	<unistd.h>
@@ -79,4 +80,18 @@
 	<dirtrav.h>
 
 1601037709 \\server\users\brecht\sources\cpp\foldersnitch\src\folderreportsversion.h
+
+1762941479 source:z:\foldersnitch\src\generateuserreports.cpp
+	<windows.h>
+	<stdlib.h>
+	<stdio.h>
+	<string.h>
+	<time.h>
+	<stdint.h>
+	"sqlitefunctions.h"
+	"folderreportsversion.h"
+	"dataoutput.h"
+	<dirtrav.h>
+
+1601037709 z:\foldersnitch\src\folderreportsversion.h
 

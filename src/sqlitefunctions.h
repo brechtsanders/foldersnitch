@@ -6,7 +6,8 @@
 #include <unistd.h>
 
 #define RETRY_WAIT_TIME 100
-#ifdef __WIN32__
+#ifdef _WIN32
+#include <windows.h>
 #define WAIT_BEFORE_RETRY(ms) Sleep(ms);
 #else
 #define WAIT_BEFORE_RETRY(ms) usleep(ms * 1000);

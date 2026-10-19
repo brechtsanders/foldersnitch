@@ -1,4 +1,4 @@
-#ifdef WIN32
+#ifdef _WIN32
 //#define __MSVCRT_VERSION__ 0x0601
 #include <windows.h>
 #endif

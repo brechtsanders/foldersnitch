@@ -1,4 +1,4 @@
-#ifdef WIN32
+#ifdef _WIN32
 //#define __MSVCRT_VERSION__ 0x0601
 #include <windows.h>
 #endif
@@ -14,7 +14,7 @@
 #define APPLICATION_NAME "generatereports"
 
 #define RETRY_WAIT_TIME 100
-#ifdef __WIN32__
+#ifdef _WIN32
 #define WAIT_BEFORE_RETRY(ms) Sleep(ms);
 #else
 #define WAIT_BEFORE_RETRY(ms) usleep(ms * 1000);
@@ -110,13 +110,13 @@ int main (int argc, char *argv[])
   execute_sql_cmd(sqliteconn,
     "CREATE INDEX IF NOT EXISTS idx_folder_parent ON folder (parent)");
   execute_sql_cmd(sqliteconn,
-    "CREATE INDEX IF NOT EXISTS idx_folder_ownerid ON folder (ownerid)");
+    "CREATE INDEX IF NOT EXISTS idx_folder_systemuid ON folder (systemuid)");
   execute_sql_cmd(sqliteconn,
     "CREATE INDEX IF NOT EXISTS idx_file_folder ON file (folder)");
   execute_sql_cmd(sqliteconn,
     "CREATE INDEX IF NOT EXISTS idx_file_size ON file (size DESC)");
   execute_sql_cmd(sqliteconn,
-    "CREATE INDEX IF NOT EXISTS idx_file_ownerid ON file (ownerid)");
+    "CREATE INDEX IF NOT EXISTS idx_file_systemuid ON file (systemuid)");
   execute_sql_cmd(sqliteconn, "COMMIT");
   printf("\rnew indices created: %.3f s\n", (float)(clock() - starttime) / CLOCKS_PER_SEC);
 
@@ -130,11 +130,12 @@ int main (int argc, char *argv[])
     "  file.name AS filename,\n"
     "  file.extension,\n"
     "  file.size,\n"
-    "  file.ownerid,\n"
+    "  CASE WHEN user.name IS NOT NULL THEN user.name ELSE file.systemuid END AS owner,\n"
     "  DATETIME(file.created, 'unixepoch', 'localtime') AS createddate,\n"
     "  DATETIME(file.lastaccess, 'unixepoch', 'localtime') AS lastfiledate\n"
     "FROM file\n"
-    "LEFT JOIN folder ON file.folder = folder.id\n"
+    "LEFT JOIN folder ON file.folder = folder.id AND file.scanid = folder.scanid\n"
+    "LEFT JOIN user ON file.systemuid = user.userid AND file.scanid = user.scanid\n"
     "ORDER BY file.size DESC, folder.path, file.name\n"
     "LIMIT 100");
   generate_sql_report(sqliteconn, "100_largest_folders",
@@ -142,7 +143,7 @@ int main (int argc, char *argv[])
     "  folder.path,\n"
     "  folder.filecount,\n"
     "  folder.totalsize,\n"
-    "  folder.ownerid,\n"
+    "  CASE WHEN user.name IS NOT NULL THEN user.name ELSE file.systemuid END AS owner,\n"
     "  MIN(file.size) AS smallestsize,\n"
     "  MAX(file.size) AS largestsize,\n"
     "  DATETIME(MIN(file.created), 'unixepoch', 'localtime') AS firstcreateddate,\n"
@@ -151,9 +152,10 @@ int main (int argc, char *argv[])
     "  DATETIME(MAX(file.lastaccess), 'unixepoch', 'localtime') AS lastaccessdate\n"
     "FROM folder\n"
     "LEFT JOIN file ON folder.id = file.folder\n"
+    "LEFT JOIN user ON file.systemuid = user.userid AND file.scanid = user.scanid\n"
     "GROUP BY folder.id\n"
     "ORDER BY folder.totalsize DESC, folder.filecount DESC\n"
-    "LIMIT 100\n");
+    "LIMIT 100");
   generate_sql_report(sqliteconn, "distribution_by_extension",
     "SELECT\n"
     "  extension,\n"
@@ -259,32 +261,34 @@ int main (int argc, char *argv[])
     "FROM file\n"
     "GROUP BY sizegroup\n"
     "ORDER BY sizegroup");
-  generate_sql_report(sqliteconn, "files_by_ownerid",
+  generate_sql_report(sqliteconn, "files_by_owner",
     "SELECT\n"
-    "  ownerid,\n"
+    "  CASE WHEN user.name IS NOT NULL THEN user.name ELSE file.systemuid END AS owner,\n"
     "  COUNT(*) AS files,\n"
-    "  SUM(size) AS totalsize,\n"
+    "  SUM(file.size) AS totalsize,\n"
     "  COUNT(DISTINCT folder) AS differentfolders,\n"
     "  DATETIME(MIN(created), 'unixepoch', 'localtime') AS firstcreateddate,\n"
     "  DATETIME(MAX(created), 'unixepoch', 'localtime') AS lastcreateddate,\n"
     "  DATETIME(MIN(lastaccess), 'unixepoch', 'localtime') AS firstaccessdate,\n"
     "  DATETIME(MAX(lastaccess), 'unixepoch', 'localtime') AS lastaccessdate\n"
     "FROM file\n"
-    "GROUP BY ownerid\n"
+    "LEFT JOIN user ON file.systemuid = user.userid AND file.scanid = user.scanid\n"
+    "GROUP BY file.systemuid\n"
     "ORDER BY totalsize DESC");
-  generate_sql_report(sqliteconn, "folders_by_ownerid",
+  generate_sql_report(sqliteconn, "folders_by_owner",
     "SELECT\n"
-    "  ownerid,\n"
+    "  CASE WHEN user.name IS NOT NULL THEN user.name ELSE folder.systemuid END AS owner,\n"
     "  COUNT(*) AS folders,\n"
-    "  SUM (totalsize) AS totalfilesize,\n"
-    "  SUM (totalsizerecursive) AS totalfilesizerecursive\n"
+    "  SUM (folder.totalsize) AS totalfoldersize,\n"
+    "  SUM (folder.totalsizerecursive) AS totalfoldersizerecursive\n"
     "FROM folder\n"
-    "GROUP BY ownerid\n"
-    "ORDER BY totalfilesize DESC, folders DESC");
+    "LEFT JOIN user ON folder.systemuid = user.userid AND folder.scanid = user.scanid\n"
+    "GROUP BY folder.systemuid\n"
+    "ORDER BY totalfoldersize DESC, folders DESC");
   //show elapsed time
   printf("\relapsed time generating reports: %.3f s\n", (float)(clock() - starttime) / CLOCKS_PER_SEC);
 
-  //generate reports about duplicates
+  //generate ràeports about duplicates
   int reportduplicates = 0;
   int status;
   sqlite3_stmt* sqlresult;
@@ -306,13 +310,13 @@ int main (int argc, char *argv[])
       "  file.name AS filename,\n"
       "  file.extension,\n"
       "  file.size,\n"
-      "  file.ownerid,\n"
+      "  file.systemuid,\n"
       "  DATETIME(file.lastaccess, 'unixepoch', 'localtime') AS lastfiledate\n"
       "FROM file\n"
       "JOIN duplicatefiles ON file.id = duplicatefiles.file1 OR file.id = duplicatefiles.file2\n"
-      "JOIN folder ON file.folder = folder.id\n"
+      "LEFT JOIN folder ON file.folder = folder.id\n"
       "ORDER BY file.size DESC, duplicatefiles.file1, folder.path, file.name");
-/* Invalid counts (duplicate files within same folders result in wrong totals)
+/**/ //Invalid counts (duplicate files within same folders result in wrong totals)
     generate_sql_report(sqliteconn, "folders_containing_duplicates",
       "SELECT\n"
       "  folder.path,\n"
@@ -322,11 +326,12 @@ int main (int argc, char *argv[])
       "  CAST(100 * SUM(file.size) / folder.totalsize AS INT) AS percentsize\n"
       "FROM duplicatefiles\n"
       "JOIN file ON duplicatefiles.file1 = file.id OR duplicatefiles.file2 = file.id\n"
-      "JOIN folder ON file.folder = folder.id\n"
+      "LEFT JOIN folder ON file.folder = folder.id\n"
       "GROUP BY file.folder\n"
       "HAVING duplicates > 0\n"
       "ORDER BY totalduplicatesize DESC, duplicates DESC, folder.path");
-*/
+/**/
+/////TO DO: the next one is empty
     generate_sql_report(sqliteconn, "folders_with_duplicates",
       "SELECT\n"
       "  COUNT(file1.folder) AS duplicates,\n"
@@ -334,11 +339,11 @@ int main (int argc, char *argv[])
       "  folder1.path AS path1,\n"
       "	 folder1.filecount AS path1files,\n"
       "	 folder1.totalsize AS path1totalsize,\n"
-      "  folder1.ownerid AS folder1ownerid,\n"
+      "  folder1.systemuid AS folder1systemuid,\n"
       "  folder2.path AS path2,\n"
       "	 folder2.filecount AS path2files,\n"
       "	 folder2.totalsize AS path2totalsize,\n"
-      "  folder2.ownerid AS folder2ownerid\n"
+      "  folder2.systemuid AS folder2systemuid\n"
       "FROM duplicatefiles\n"
       "JOIN file AS file1 ON duplicatefiles.file1 = file1.id OR duplicatefiles.file2 = file1.id\n"
       "JOIN file AS file2 ON duplicatefiles.file1 = file2.id OR duplicatefiles.file2 = file2.id\n"
@@ -454,15 +459,15 @@ sqlite3 -header tempdb.sq3 "SELECT folder.path, file.name, file.extension, file.
 
 sqlite3 -header tempdb.sq3 "SELECT duplicatefiles.file1, folder.path, file.name, file.extension, file.size, DATETIME(file.lastaccess, 'unixepoch', 'localtime') AS lastfiledate FROM file JOIN duplicatefiles ON file.id = duplicatefiles.file1 OR file.id = duplicatefiles.file2 LEFT JOIN folder ON file.folder = folder.id ORDER BY duplicatefiles.file1, folder.path, file.name"
 
-sqlite3 -header tempdb.sq3 "SELECT ownerid, COUNT(file.id) AS totalfiles, SUM(file.size) AS totalsize FROM file GROUP BY ownerid"
+sqlite3 -header tempdb.sq3 "SELECT systemuid, COUNT(file.id) AS totalfiles, SUM(file.size) AS totalsize FROM file GROUP BY systemuid"
 
 -- list specific user's files
-sqlite3 -header tempdb.sq3 "SELECT folder.path,file.name AS filename,file.size,DATETIME(file.lastaccess, 'unixepoch', 'localtime') AS lastfiledate FROM file LEFT JOIN folder ON file.folder = folder.id WHERE file.ownerid='ISIS\lahayel' ORDER BY file.size DESC, folder.path, file.name"
+sqlite3 -header tempdb.sq3 "SELECT folder.path,file.name AS filename,file.size,DATETIME(file.lastaccess, 'unixepoch', 'localtime') AS lastfiledate FROM file LEFT JOIN folder ON file.folder = folder.id WHERE file.systemuid='ISIS\lahayel' ORDER BY file.size DESC, folder.path, file.name"
 
 -- list recent files
-sqlite3 -header tempdb.sq3 "SELECT * FROM file WHERE DATE(lastaccess, 'unixepoch', 'localtime') >= DATE('now', '-1 day') ORDER BY ownerid, size DESC"
--- list ownerids of files created today and total size of new files
-sqlite3 -header tempdb.sq3 "SELECT ownerid, SUM(size) FROM file WHERE DATE(MAX(created, lastaccess), 'unixepoch', 'localtime') >= DATE('now', '-1 day') GROUP BY ownerid ORDER BY SUM(size) DESC"
+sqlite3 -header tempdb.sq3 "SELECT * FROM file WHERE DATE(lastaccess, 'unixepoch', 'localtime') >= DATE('now', '-1 day') ORDER BY systemuid, size DESC"
+-- list systemuids of files created today and total size of new files
+sqlite3 -header tempdb.sq3 "SELECT systemuid, SUM(size) FROM file WHERE DATE(MAX(created, lastaccess), 'unixepoch', 'localtime') >= DATE('now', '-1 day') GROUP BY systemuid ORDER BY SUM(size) DESC"
 */
 //See also: http://en.wikipedia.org/wiki/NTFS_symbolic_link
 

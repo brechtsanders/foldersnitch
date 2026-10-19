@@ -85,12 +85,12 @@
 		</Compiler>
 		<Linker>
 			<Add option="-static" />
+			<Add option="`pkg-config --static --libs libdirtravw`" />
 			<Add library="sqlite3" />
 			<Add library="mhash" />
 			<Add library="rhash" />
 			<Add library="crypto" />
 			<Add library="nettle" />
-			<Add library="dirtravw" />
 		</Linker>
 		<Unit filename="../src/findduplicates.c">
 			<Option compilerVar="CC" />

@@ -1,4 +1,4 @@
-#ifdef WIN32
+#ifdef _WIN32
 #include <windows.h>
 #define USE_WIDE_STRINGS
 #endif
@@ -275,13 +275,15 @@ int main (int argc, char *argv[])
   if ((sqlresult = execute_sql_query_with_1_parameter(sqliteconn,
     "SELECT\n"
     "  size,\n"
-    "  COUNT(*)\n"
+    "  COUNT(size)\n"
     "FROM file\n"
     "WHERE size >= ?\n"
     "GROUP BY size\n"
-    "HAVING COUNT(*) > 1", &status, (MINIMUM_DUPLICATE_FILE_SIZE > 0 ? MINIMUM_DUPLICATE_FILE_SIZE : 1))) != NULL) {
+    "HAVING COUNT(size) > 1\n"
+    "ORDER BY size DESC", &status, (MINIMUM_DUPLICATE_FILE_SIZE > 0 ? MINIMUM_DUPLICATE_FILE_SIZE : 1))) != NULL) {
     if (status == SQLITE_ROW || status == SQLITE_DONE) {
       while (status == SQLITE_ROW) {
+/////printf("Hashing files of size: %lu\n", (unsigned long)sqlite3_column_int64(sqlresult, 0));/////
         int substatus;
         sqlite3_stmt* subsqlresult;
 #ifndef NO_HASH

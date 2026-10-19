@@ -1,1 +1,10 @@
 # depslib dependency file v1.0
+1354565603 source:z:\foldersnitch\src\sqlitefunctions.c
+	<windows.h>
+	"sqlitefunctions.h"
+
+1584883540 z:\foldersnitch\src\sqlitefunctions.h
+	<sqlite3.h>
+	<stdint.h>
+	<unistd.h>
+

@@ -1,28 +1,37 @@
 # depslib dependency file v1.0
-1354565603 source:z:\folder-reports\src\sqlitefunctions.c
-	<windows.h>
-	"sqlitefunctions.h"
+1761239914 source:z:\foldersnitch\src\dataoutput.cpp
+	"dataoutput.h"
+	<string.h>
+	<ctype.h>
+	<inttypes.h>
+	<unistd.h>
 
-1370601266 z:\folder-reports\src\sqlitefunctions.h
+1458817015 z:\foldersnitch\src\dataoutput.h
+	<stdio.h>
+	<stdint.h>
+	<string>
+	<vector>
+	<xlsxio_write.h>
+
+1762979348 source:z:\foldersnitch\src\generatereports.cpp
+	<windows.h>
+	<stdlib.h>
+	<stdio.h>
+	<string.h>
+	<time.h>
+	<stdint.h>
+	"sqlitefunctions.h"
+	"folderreportsversion.h"
+	"dataoutput.h"
+
+1584883540 z:\foldersnitch\src\sqlitefunctions.h
 	<sqlite3.h>
 	<stdint.h>
 	<unistd.h>
 
-1354569203 source:z:\foldersnitch\src\sqlitefunctions.c
+1601037709 z:\foldersnitch\src\folderreportsversion.h
+
+1354565603 source:z:\foldersnitch\src\sqlitefunctions.c
 	<windows.h>
 	"sqlitefunctions.h"
-
-1584887140 z:\foldersnitch\src\sqlitefunctions.h
-	<sqlite3.h>
-	<stdint.h>
-	<unistd.h>
-
-1354565603 source:\\server\users\brecht\sources\cpp\foldersnitch\src\sqlitefunctions.c
-	<windows.h>
-	"sqlitefunctions.h"
-
-1584883540 \\server\users\brecht\sources\cpp\foldersnitch\src\sqlitefunctions.h
-	<sqlite3.h>
-	<stdint.h>
-	<unistd.h>
 

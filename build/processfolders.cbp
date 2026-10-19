@@ -35,7 +35,7 @@
 				<Option object_output="../obj/Debug64/" />
 				<Option type="1" />
 				<Option compiler="mingw64" />
-				<Option parameters=".." />
+				<Option parameters=".. C:\TEMP %TEMP%" />
 				<Compiler>
 					<Add option="-g" />
 				</Compiler>
@@ -86,8 +86,8 @@
 		</Compiler>
 		<Linker>
 			<Add option="-static" />
+			<Add option="`pkg-config --static --libs libdirtravw`" />
 			<Add library="sqlite3" />
-			<Add library="dirtravw" />
 		</Linker>
 		<Unit filename="../src/processfolders.c">
 			<Option compilerVar="CC" />

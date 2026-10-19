@@ -1,3 +1,10 @@
+0.1.2
+
+2020-10-19  Brecht Sanders  https://github.com/brechtsanders/
+
+  * use _WIN32 instead of WIN32 and __WIN32__
+  * chane Makefile to force C++11 to allow building with GCC 16
+
 0.1.1
 
 2020-09-25  Brecht Sanders  https://github.com/brechtsanders/

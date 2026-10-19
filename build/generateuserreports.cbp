@@ -81,16 +81,18 @@
 		<Compiler>
 			<Add option="-Wall" />
 			<Add option="-fexceptions" />
+			<Add option="-DSTATIC" />
+			<Add option="-DUSE_XLSXIO" />
 		</Compiler>
 		<Linker>
 			<Add option="-static" />
 			<Add option="-Wl,--as-needed" />
+			<Add option="`pkg-config --static --libs libdirtrav`" />
 			<Add library="sqlite3" />
 			<Add library="xlsxio_write" />
 			<Add library="minizip" />
 			<Add library="zip" />
 			<Add library="z" />
-			<Add library="dirtrav" />
 		</Linker>
 		<Unit filename="../src/dataoutput.cpp" />
 		<Unit filename="../src/dataoutput.h" />

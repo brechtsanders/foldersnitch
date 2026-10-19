@@ -1,4 +1,4 @@
-#ifdef WIN32
+#ifdef _WIN32
 //#define __MSVCRT_VERSION__ 0x0601
 #include <windows.h>
 #endif
@@ -8,20 +8,20 @@
 #include <time.h>
 #include <stdint.h>
 #include "sqlitefunctions.h"
-#include "dataoutput.h"
 #include "folderreportsversion.h"
+#include "dataoutput.h"
 #include <dirtrav.h>
 
 #define APPLICATION_NAME "generateuserreports"
 
 #define RETRY_WAIT_TIME 100
-#ifdef __WIN32__
+#ifdef _WIN32
 #define WAIT_BEFORE_RETRY(ms) Sleep(ms);
 #else
 #define WAIT_BEFORE_RETRY(ms) usleep(ms * 1000);
 #endif
 
-#ifdef WIN32
+#ifdef _WIN32
 #define PATH_SEPARATOR '\\'
 #else
 #define PATH_SEPARATOR '/'
@@ -93,36 +93,36 @@ std::string get_user_report_name (const char* user, const char* report)
 
 ////////////////////////////////////////////////////////////////////////
 
-void process_owner (sqlite3* sqliteconn, const char* owner, int reportduplicates)
+void process_owner (sqlite3* sqliteconn, const char* userid, const char* name, int reportduplicates)
 {
-  //abort if owner is NULL
-  if (!owner)
-    owner = "$$NONE$$";
+  //abort if userid is NULL
+  if (!userid && (!name || !*name))
+    name = "$$NONE$$";
   //create parent folder(s)
-  dirtrav_make_full_path(NULL, owner, 0);
+  dirtrav_make_full_path(NULL, (name ? name : userid), 0);
   //start timer
-  printf("generating reports for user %s\n", owner);
+  printf("generating reports for user %s (system ID: %s)\n", (name ? name : "(name unknown)"), (userid ? userid : "-"));
   //write reports
-  generate_sql_report_with_1_string_parameter(sqliteconn, get_user_report_name(owner, "100_largest_files").c_str(),
+  generate_sql_report_with_1_string_parameter(sqliteconn, get_user_report_name(name, "100_largest_files").c_str(),
     "SELECT\n"
     "  folder.path,\n"
     "  file.name AS filename,\n"
     "  file.extension,\n"
     "  file.size,\n"
-    "  file.ownerid,\n"
+    "  file.systemuid,\n"
     "  DATETIME(file.created, 'unixepoch', 'localtime') AS createddate,\n"
     "  DATETIME(file.lastaccess, 'unixepoch', 'localtime') AS lastaccessdate\n"
     "FROM file\n"
     "LEFT JOIN folder ON file.folder = folder.id\n"
-    "WHERE file.ownerid = ?\n"
+    "WHERE file.systemuid = ?\n"
     "ORDER BY file.size DESC, folder.path, file.name\n"
-    "LIMIT 100", owner);
-  generate_sql_report_with_1_string_parameter(sqliteconn, get_user_report_name(owner, "100_largest_folders").c_str(),
+    "LIMIT 100", userid);
+  generate_sql_report_with_1_string_parameter(sqliteconn, get_user_report_name(name, "100_largest_folders").c_str(),
     "SELECT\n"
     "  folder.path,\n"
     "  folder.filecount,\n"
     "  folder.totalsize,\n"
-    "  folder.ownerid,\n"
+    "  folder.systemuid,\n"
     "  MIN(size) AS smallestsize,\n"
     "  MAX(size) AS largestsize,\n"
     "  DATETIME(MIN(file.created), 'unixepoch', 'localtime') AS firstcreateddate,\n"
@@ -131,11 +131,11 @@ void process_owner (sqlite3* sqliteconn, const char* owner, int reportduplicates
     "  DATETIME(MAX(file.lastaccess), 'unixepoch', 'localtime') AS lastaccessdate\n"
     "FROM folder\n"
     "LEFT JOIN file ON folder.id = file.folder\n"
-    "WHERE folder.ownerid = ?\n"
+    "WHERE folder.systemuid = ?\n"
     "GROUP BY folder.id\n"
     "ORDER BY folder.totalsize DESC, folder.filecount DESC\n"
-    "LIMIT 100\n", owner);
-  generate_sql_report_with_1_string_parameter(sqliteconn, get_user_report_name(owner, "distribution_by_extension").c_str(),
+    "LIMIT 100\n", userid);
+  generate_sql_report_with_1_string_parameter(sqliteconn, get_user_report_name(name, "distribution_by_extension").c_str(),
     "SELECT\n"
     "  extension,\n"
     "  COUNT(*) AS files,\n"
@@ -148,10 +148,10 @@ void process_owner (sqlite3* sqliteconn, const char* owner, int reportduplicates
     "  DATETIME(MIN(lastaccess), 'unixepoch', 'localtime') AS firstaccessdate,\n"
     "  DATETIME(MAX(lastaccess), 'unixepoch', 'localtime') AS lastaccessdate\n"
     "FROM file\n"
-    "WHERE file.ownerid = ?\n"
+    "WHERE file.systemuid = ?\n"
     "GROUP BY extension\n"
-    "ORDER BY totalsize DESC, files DESC, extension", owner);
-  generate_sql_report_with_1_string_parameter(sqliteconn, get_user_report_name(owner, "distribution_by_creation_age").c_str(),
+    "ORDER BY totalsize DESC, files DESC, extension", userid);
+  generate_sql_report_with_1_string_parameter(sqliteconn, get_user_report_name(name, "distribution_by_creation_age").c_str(),
     "SELECT\n"
     "  CASE\n"
     "    WHEN DATETIME(created, 'unixepoch', 'localtime') > DATETIME('now') THEN '0. Future'\n"
@@ -178,10 +178,10 @@ void process_owner (sqlite3* sqliteconn, const char* owner, int reportduplicates
     "  DATETIME(MIN(created), 'unixepoch', 'localtime') AS firstaccessdate,\n"
     "  DATETIME(MAX(created), 'unixepoch', 'localtime') AS lastcreateddate\n"
     "FROM file\n"
-    "WHERE file.ownerid = ?\n"
+    "WHERE file.systemuid = ?\n"
     "GROUP BY age\n"
-    "ORDER BY age", owner);
-  generate_sql_report_with_1_string_parameter(sqliteconn, get_user_report_name(owner, "distribution_by_access_age").c_str(),
+    "ORDER BY age", userid);
+  generate_sql_report_with_1_string_parameter(sqliteconn, get_user_report_name(name, "distribution_by_access_age").c_str(),
     "SELECT\n"
     "  CASE\n"
     "    WHEN DATETIME(lastaccess, 'unixepoch', 'localtime') > DATETIME('now') THEN '0. Future'\n"
@@ -208,10 +208,10 @@ void process_owner (sqlite3* sqliteconn, const char* owner, int reportduplicates
     "  DATETIME(MIN(lastaccess), 'unixepoch', 'localtime') AS firstaccessdate,\n"
     "  DATETIME(MAX(lastaccess), 'unixepoch', 'localtime') AS lastaccessdate\n"
     "FROM file\n"
-    "WHERE file.ownerid = ?\n"
+    "WHERE file.systemuid = ?\n"
     "GROUP BY age\n"
-    "ORDER BY age", owner);
-  generate_sql_report_with_1_string_parameter(sqliteconn, get_user_report_name(owner, "distribution_by_size").c_str(),
+    "ORDER BY age", userid);
+  generate_sql_report_with_1_string_parameter(sqliteconn, get_user_report_name(name, "distribution_by_size").c_str(),
     "SELECT\n"
     "  CASE\n"
     "    WHEN size <= 0 THEN 'A. = 0 KB'\n"
@@ -240,41 +240,41 @@ void process_owner (sqlite3* sqliteconn, const char* owner, int reportduplicates
     "  DATETIME(MIN(lastaccess), 'unixepoch', 'localtime') AS firstaccessdate,\n"
     "  DATETIME(MAX(lastaccess), 'unixepoch', 'localtime') AS lastaccessdate\n"
     "FROM file\n"
-    "WHERE file.ownerid = ?\n"
+    "WHERE file.systemuid = ?\n"
     "GROUP BY sizegroup\n"
-    "ORDER BY sizegroup", owner);
+    "ORDER BY sizegroup", userid);
 
   //generate reports about duplicates
   if (reportduplicates) {
-    generate_sql_report_with_1_string_parameter(sqliteconn, get_user_report_name(owner, "duplicate_files").c_str(),
+    generate_sql_report_with_1_string_parameter(sqliteconn, get_user_report_name(name, "duplicate_files").c_str(),
       "SELECT DISTINCT\n"
       "  duplicatefiles.file1 AS id,\n"
       "  folder.path,\n"
       "  file.name AS filename,\n"
       "  file.extension,\n"
       "  file.size,\n"
-      "  file.ownerid,\n"
+      "  file.systemuid,\n"
       "  DATETIME(file.created, 'unixepoch', 'localtime') AS createddate,\n"
       "  DATETIME(file.lastaccess, 'unixepoch', 'localtime') AS lastaccessdate\n"
       "FROM file\n"
       "JOIN duplicatefiles ON file.id = duplicatefiles.file1 OR file.id = duplicatefiles.file2\n"
       "JOIN folder ON file.folder = folder.id\n"
-      "WHERE file.owner = ?\n"
-      "ORDER BY file.size DESC, duplicatefiles.file1, folder.path, file.name", owner);
-    generate_sql_report_with_1_string_parameter(sqliteconn, get_user_report_name(owner, "duplicate_files2").c_str(),
+      "WHERE file.userid = ?\n"
+      "ORDER BY file.size DESC, duplicatefiles.file1, folder.path, file.name", userid);
+    generate_sql_report_with_1_string_parameter(sqliteconn, get_user_report_name(name, "duplicate_files2").c_str(),
       "SELECT DISTINCT\n"
       "  folder1.path AS path1,\n"
       "  file1.name AS filename1,\n"
       "  file1.extension AS extension1,\n"
       "  file1.size AS size1,\n"
-      "  file1.ownerid AS ownerid1,\n"
+      "  file1.systemuid AS systemuid1,\n"
       "  DATETIME(file1.created, 'unixepoch', 'localtime') AS createddate1,\n"
       "  DATETIME(file1.lastaccess, 'unixepoch', 'localtime') AS lastaccessdate1,\n"
       "  folder2.path AS path2,\n"
       "  file2.name AS filename2,\n"
       "  file2.extension AS extension2,\n"
       "  file2.size AS size2,\n"
-      "  file2.ownerid AS ownerid2,\n"
+      "  file2.systemuid AS systemuid2,\n"
       "  DATETIME(file2.created, 'unixepoch', 'localtime') AS createddate2,\n"
       "  DATETIME(file2.lastaccess, 'unixepoch', 'localtime') AS lastaccessdate2\n"
       "FROM duplicatefiles\n"
@@ -282,29 +282,29 @@ void process_owner (sqlite3* sqliteconn, const char* owner, int reportduplicates
       "JOIN file AS file2 ON duplicatefiles.file2 = file2.id\n"
       "JOIN folder AS folder1 ON file1.folder = folder1.id\n"
       "JOIN folder AS folder2 ON file2.folder = folder2.id\n"
-      "WHERE file1.ownerid = ?1 OR file2.ownerid = ?1\n"
-      "ORDER BY file1.size DESC, folder1.path, file1.name", owner);
-    generate_sql_report_with_1_string_parameter(sqliteconn, get_user_report_name(owner, "folders_with_duplicates").c_str(),
+      "WHERE file1.systemuid = ?1 OR file2.systemuid = ?1\n"
+      "ORDER BY file1.size DESC, folder1.path, file1.name", userid);
+    generate_sql_report_with_1_string_parameter(sqliteconn, get_user_report_name(name, "folders_with_duplicates").c_str(),
       "SELECT\n"
       "  COUNT(file1.folder) AS duplicates,\n"
       "  SUM(file1.size) AS totalduplicatesize,\n"
       "  folder1.path AS path1,\n"
       "	 folder1.filecount AS path1files,\n"
       "	 folder1.totalsize AS path1totalsize,\n"
-      "  folder1.ownerid AS folder1ownerid,\n"
+      "  folder1.systemuid AS folder1systemuid,\n"
       "  folder2.path AS path2,\n"
       "	 folder2.filecount AS path2files,\n"
       "	 folder2.totalsize AS path2totalsize,\n"
-      "  folder2.ownerid AS folder2ownerid\n"
+      "  folder2.systemuid AS folder2systemuid\n"
       "FROM duplicatefiles\n"
       "JOIN file AS file1 ON duplicatefiles.file1 = file1.id OR duplicatefiles.file2 = file1.id\n"
       "JOIN file AS file2 ON duplicatefiles.file1 = file2.id OR duplicatefiles.file2 = file2.id\n"
       "JOIN folder AS folder1 ON file1.folder = folder1.id\n"
       "JOIN folder AS folder2 ON file2.folder = folder2.id\n"
-      "WHERE file1.ownerid = ?1 OR file2.ownerid = ?1\n"
+      "WHERE file1.systemuid = ?1 OR file2.systemuid = ?1\n"
       "GROUP BY file1.folder, file2.folder\n"
       "HAVING file1.id <> file2.id AND folder1.id < folder2.id\n"
-      "ORDER BY totalduplicatesize DESC, duplicates DESC, folder1.path, folder2.path", owner);
+      "ORDER BY totalduplicatesize DESC, duplicates DESC, folder1.path, folder2.path", userid);
   }
 }
 
@@ -345,13 +345,13 @@ int main (int argc, char *argv[])
   execute_sql_cmd(sqliteconn,
     "CREATE INDEX IF NOT EXISTS idx_folder_parent ON folder (parent)");
   execute_sql_cmd(sqliteconn,
-    "CREATE INDEX IF NOT EXISTS idx_folder_ownerid ON folder (ownerid)");
+    "CREATE INDEX IF NOT EXISTS idx_folder_systemuid ON folder (systemuid)");
   execute_sql_cmd(sqliteconn,
     "CREATE INDEX IF NOT EXISTS idx_file_folder ON file (folder)");
   execute_sql_cmd(sqliteconn,
     "CREATE INDEX IF NOT EXISTS idx_file_size ON file (size DESC)");
   execute_sql_cmd(sqliteconn,
-    "CREATE INDEX IF NOT EXISTS idx_file_ownerid ON file (ownerid)");
+    "CREATE INDEX IF NOT EXISTS idx_file_systemuid ON file (systemuid)");
   execute_sql_cmd(sqliteconn, "COMMIT");
   printf("\rnew indices created: %.3f s\n", (float)(clock() - starttime) / CLOCKS_PER_SEC);
 
@@ -372,12 +372,12 @@ int main (int argc, char *argv[])
     //process command line parameters
     int i;
     for (i = 1; i < argc; i++)
-      process_owner(sqliteconn, argv[i], reportduplicates);
+      process_owner(sqliteconn, argv[i], NULL, reportduplicates);
   } else {
-    if ((sqlresult = execute_sql_query(sqliteconn, "SELECT DISTINCT ownerid FROM (SELECT DISTINCT ownerid FROM file UNION SELECT DISTINCT ownerid FROM folder)", &status)) != NULL) {
+    if ((sqlresult = execute_sql_query(sqliteconn, "SELECT DISTINCT systemuid, user.name FROM (SELECT DISTINCT systemuid FROM file UNION SELECT DISTINCT systemuid FROM folder) LEFT JOIN user ON systemuid = user.userid", &status)) != NULL) {
       if (status == SQLITE_ROW || status == SQLITE_DONE) {
         while (status == SQLITE_ROW) {
-          process_owner(sqliteconn, (char*)sqlite3_column_text(sqlresult, 0), reportduplicates);
+          process_owner(sqliteconn, (char*)sqlite3_column_text(sqlresult, 0), (char*)sqlite3_column_text(sqlresult, 1), reportduplicates);
           while ((status = sqlite3_step(sqlresult)) == SQLITE_BUSY)
             WAIT_BEFORE_RETRY(RETRY_WAIT_TIME)
         }
@@ -398,9 +398,9 @@ int main (int argc, char *argv[])
 
 /*
 -- list specific user's files
-sqlite3.exe -header tempdb.sq3 "SELECT folder.path,file.name AS filename,file.size,DATETIME(file.lastaccess, 'unixepoch', 'localtime') AS lastfiledate FROM file LEFT JOIN folder ON file.folder = folder.id WHERE file.ownerid='ISIS\lahayel' ORDER BY file.size DESC, folder.path, file.name"
+sqlite3.exe -header tempdb.sq3 "SELECT folder.path,file.name AS filename,file.size,DATETIME(file.lastaccess, 'unixepoch', 'localtime') AS lastfiledate FROM file LEFT JOIN folder ON file.folder = folder.id WHERE file.systemuid='ISIS\lahayel' ORDER BY file.size DESC, folder.path, file.name"
 -- list all users
-sqlite3.exe -header tempdb.sq3 "SELECT DISTINCT ownerid FROM (SELECT DISTINCT ownerid FROM file UNION SELECT DISTINCT ownerid FROM folder)"
+sqlite3.exe -header tempdb.sq3 "SELECT DISTINCT systemuid FROM (SELECT DISTINCT systemuid FROM file UNION SELECT DISTINCT systemuid FROM folder)"
 */
 //See also: http://en.wikipedia.org/wiki/NTFS_symbolic_link
 

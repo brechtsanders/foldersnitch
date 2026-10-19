@@ -34,7 +34,7 @@ endif
 DEFS = -DUSE_XLSXIO
 INCS = 
 CFLAGS = $(DEFS) $(INCS) -Os
-CXXFLAGS = $(DEFS) $(INCS) -Os
+CXXFLAGS = $(DEFS) $(INCS) -Os -std=c++11
 ifeq ($(STATIC),1)
 CFLAGS += -DSTATIC
 CXXFLAGS += -DSTATIC
