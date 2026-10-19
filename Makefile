@@ -35,12 +35,14 @@ DEFS = -DUSE_XLSXIO
 INCS = 
 CFLAGS = $(DEFS) $(INCS) -Os
 CXXFLAGS = $(DEFS) $(INCS) -Os -std=c++11
+LDFLAGS =
+LIBS =
 ifeq ($(STATIC),1)
 CFLAGS += -DSTATIC
 CXXFLAGS += -DSTATIC
+STATICFLAG = --static
+LDFLAGS += -static
 endif
-LIBS =
-LDFLAGS =
 ifeq ($(OS),Darwin)
 STRIPFLAG =
 else
@@ -52,6 +54,7 @@ RMDIR = rm -rf
 CP = cp -f
 CPDIR = cp -rf
 DOXYGEN = $(shell which doxygen)
+PKG_CONFIG = $(shell which pkg-config)
 
 OSALIAS := $(OS)
 ifeq ($(OS),Windows_NT)
@@ -62,16 +65,16 @@ OSALIAS := win32
 endif
 endif
 
-PROCESSFOLDERSLIBS := -lsqlite3
-FINDDUPLICATESLIBS := -lsqlite3 -lmhash
-GENERATEREPORTSLIBS := -lsqlite3 -lxlsxio_write
-GENERATEUSERREPORTSLIBS := -lsqlite3 -lxlsxio_write -ldirtrav
+PROCESSFOLDERSLIBS := $(shell $(PKG_CONFIG) $(STATICFLAG) --libs sqlite3)
+FINDDUPLICATESLIBS := $(shell $(PKG_CONFIG) $(STATICFLAG) --libs sqlite3) -lmhash
+GENERATEREPORTSLIBS := $(shell $(PKG_CONFIG) $(STATICFLAG) --libs sqlite3 libxlsxio_write)
+GENERATEUSERREPORTSLIBS := $(shell $(PKG_CONFIG) $(STATICFLAG) --libs sqlite3 libxlsxio_write libdirtrav)
 ifeq ($(OS),Windows_NT)
-PROCESSFOLDERSLIBS += -ldirtravw
-FINDDUPLICATESLIBS += -ldirtravw
+PROCESSFOLDERSLIBS += $(shell $(PKG_CONFIG) $(STATICFLAG) --libs libdirtravw)
+FINDDUPLICATESLIBS += $(shell $(PKG_CONFIG) $(STATICFLAG) --libs libdirtravw)
 else
-PROCESSFOLDERSLIBS += -ldirtrav
-FINDDUPLICATESLIBS += -ldirtrav
+PROCESSFOLDERSLIBS += $(shell $(PKG_CONFIG) $(STATICFLAG) --libs libdirtrav)
+FINDDUPLICATESLIBS += $(shell $(PKG_CONFIG) $(STATICFLAG) --libs libdirtrav)
 endif
 TOOLSBIN = processfolders$(BINEXT) findduplicates$(BINEXT) generatereports$(BINEXT) generateuserreports$(BINEXT)
 
@@ -91,16 +94,16 @@ all: tools
 	$(CXX) -c -o $@ $< $(CXXFLAGS)
 
 processfolders$(BINEXT): src/processfolders.o src/sqlitefunctions.o
-	$(CC) $(STRIPFLAG) -o $@ $^ $(PROCESSFOLDERSLIBS) $(LDFLAGS)
+	$(CC) $(STRIPFLAG) -o $@ $^ $(PROCESSFOLDERSLIBS) $(LDFLAGS) $(LIBS)
 	
 findduplicates$(BINEXT): src/findduplicates.o src/sqlitefunctions.o
-	$(CXX) $(STRIPFLAG) -o $@ $^ $(FINDDUPLICATESLIBS) $(LDFLAGS)
+	$(CXX) $(STRIPFLAG) -o $@ $^ $(FINDDUPLICATESLIBS) $(LDFLAGS) $(LIBS)
 
 generatereports$(BINEXT): src/generatereports.o src/sqlitefunctions.o src/dataoutput.o
-	$(CXX) $(STRIPFLAG) -o $@ $^ $(GENERATEREPORTSLIBS) $(LDFLAGS)
+	$(CXX) $(STRIPFLAG) -o $@ $^ $(GENERATEREPORTSLIBS) $(LDFLAGS) $(LIBS)
 
 generateuserreports$(BINEXT): src/generateuserreports.o src/sqlitefunctions.o src/dataoutput.o
-	$(CXX) $(STRIPFLAG) -o $@ $^ $(GENERATEUSERREPORTSLIBS) $(LDFLAGS)
+	$(CXX) $(STRIPFLAG) -o $@ $^ $(GENERATEUSERREPORTSLIBS) $(LDFLAGS) $(LIBS)
 
 install: all
 	$(MKDIR) $(PREFIX)/bin
@@ -120,7 +123,8 @@ ifneq ($(OS),Windows_NT)
 	$(MAKE) PREFIX=binarypackage_temp_$(OSALIAS) install
 	tar cfJ foldersnitch-$(shell cat version)-$(OSALIAS).tar.xz --transform="s?^binarypackage_temp_$(OSALIAS)/??" $(COMMON_PACKAGE_FILES) binarypackage_temp_$(OSALIAS)/*
 else
-	$(MAKE) PREFIX=binarypackage_temp_$(OSALIAS) install STATIC=1 LDFLAGS="-static -Wl,--as-needed -lminizip -lz"
+	#$(MAKE) PREFIX=binarypackage_temp_$(OSALIAS) install STATIC=1 LDFLAGS="-static -Wl,--as-needed -lminizip -lz"
+	$(MAKE) PREFIX=binarypackage_temp_$(OSALIAS) install STATIC=1 LIBS="-lminizip-ng -lbz2 -lz -llzma -lzstd -lppmd -lcrypto -lws2_32 -lcrypt32"
 	cp -f $(COMMON_PACKAGE_FILES) binarypackage_temp_$(OSALIAS)
 	rm -f foldersnitch-$(shell cat version)-$(OSALIAS).zip
 	cd binarypackage_temp_$(OSALIAS) && zip -r9 ../foldersnitch-$(shell cat version)-$(OSALIAS).zip $(COMMON_PACKAGE_FILES) * && cd ..
